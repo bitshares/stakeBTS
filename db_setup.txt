@@ -1,0 +1,36 @@
+CREATE TABLE last_check (
+    blockheight INTEGER
+);
+INSERT INTO last_check (blockheight) VALUES (37302820);
+
+CREATE TABLE stakes (
+    block INTEGER,
+    blockid TEXT,
+    timestamp REAL,
+    user TEXT,
+    asset TEXT,
+    stakelength TEXT,
+    stakevalidtime REAL,
+    amount REAL
+);
+
+CREATE TABLE cancelledstakes (
+    block INTEGER,
+    blockid TEXT,
+    timestamp REAL,
+    user TEXT,
+    asset TEXT,
+    stakelength TEXT,
+    stakevalidtime REAL,
+    amount REAL,
+    cancelledtime REAL
+);
+
+CREATE TABLE payouts (
+    blockid TEXT,
+    account TEXT,
+    stakeamount REAL,
+    stakelength TEXT,
+    payoutamount REAL,
+    timestamp REAL
+);
