@@ -3,16 +3,17 @@ BitShares.org StakeMachine
 Interest Payment on Investment for
 BitShares Management Group Co. Ltd.
 """
-
+# Standard imports
 from apscheduler.schedulers.background import BackgroundScheduler
 import time
-from pprint import pprint
 from getpass import getpass
 from traceback import format_exc
 from json import loads as json_load
 from sqlite3 import connect as sqlite3_connect
 from decimal import Decimal
+from sys import exit
 
+# BitShares imports
 from bitshares.account import Account
 from bitshares.block import Block
 from bitshares.asset import Asset
@@ -21,8 +22,8 @@ from bitshares.memo import Memo
 from bitshares.instance import set_shared_bitshares_instance
 
 # USER INPUTS
-ACCOUNT_WATCHING = "dont-know"
-MINIMUM_ACCOUNT_BALANCE = 50
+ACCOUNT_WATCHING = "development.bitshares.org"
+MAXIMUM_ACCOUNT_BALANCE = 2
 TEN_PAYOUT = 0.015
 TWENTY_PAYOUT = 0.025
 FIFTY_PAYOUT = 0.055
@@ -30,6 +31,8 @@ CANCEL_AMOUNT = 1
 
 THREE_BLOCK_MONTHS = 2592000  # blocks per 3 months
 SIX_BLOCK_MONTHS = 5184000  # blocks per 6 months
+
+INVESTMENT_ASSET = 'BTS'
 
 scheduler = BackgroundScheduler()
 scheduler.start()
@@ -40,16 +43,6 @@ def add_jobs(password):
     Function to add jobs to apscheduler. These are payout jobs.
     """
     scheduler.add_job(payout_weekly_stake, trigger='cron', args=[password], minute='*')
-
-
-# USER DEFINED NODE WHITELIST
-def public_nodes():
-    """
-    User defined list of whitelisted public RPC nodes
-    """
-    return [
-        "wss://api.iamredbar.com/ws",
-    ]
 
 
 def payout_database_entry(valid_stakes):
@@ -80,7 +73,7 @@ def payout_database_entry(valid_stakes):
                     )
             except BaseException as err:
                 handle_error(err, "ERROR SUBMITTING PAYOUT TO DB")
-        pprint("Added payouts to database.")
+        print("Added payouts to database.")
         break
     investment_db.commit()
 
@@ -96,15 +89,15 @@ def payout_transfer(valid_stakes, password):
             bitshares.transfer(
                 stake["recipient"],
                 stake["payout_amount"],
-                'BTS',
-                memo=f'Payout of {stake["payout_amount"]} BTS',
+                INVESTMENT_ASSET,
+                memo=f'Payout of {stake["payout_amount"]} {INVESTMENT_ASSET}',
                 account=ACCOUNT_WATCHING
             )
             bitshares.wallet.lock()
             bitshares.clear_cache()
         except BaseException as err:
             handle_error(err, "ERROR TRANSFERRING PAYOUT.")
-        pprint("Transferred stake payout.")
+        print("Transferred stake payout.")
 
 
 def payout_weekly_stake(password):
@@ -117,11 +110,11 @@ def payout_weekly_stake(password):
     for stake in weekly_stakes:
         payout_amount = 0
         if stake[4] == 10000:
-            payout_amount = get_payout_amount(float(stake[4]), TEN_PAYOUT)
+            payout_amount = _get_payout_amount(float(stake[4]), TEN_PAYOUT)
         elif stake[4] == 20000:
-            payout_amount = get_payout_amount(float(stake[4]), TWENTY_PAYOUT)
+            payout_amount = _get_payout_amount(float(stake[4]), TWENTY_PAYOUT)
         elif stake[4] == 50000:
-            payout_amount = get_payout_amount(float(stake[4]), FIFTY_PAYOUT)
+            payout_amount = _get_payout_amount(float(stake[4]), FIFTY_PAYOUT)
         valid_stakes.append({
             "recipient": stake[1],
             "stake_amount": stake[4],
@@ -163,73 +156,73 @@ def stake_organizer(bot, investment_db):
             handle_error(err, "ERROR SUBMITTING STAKE TO DB")
 
 
-def transfer_cancelled_stake(bot, transfer_amount):
-    bitshares, memo = reconnect()
-    try:
-        bitshares.wallet.unlock(bot["password"])
-        bitshares.transfer(
-            bot["payor"],
-            transfer_amount,
-            "BTS",
-            memo="Return of {} stake. {} BTS returned.".format(
-                bot["stop_length"],
-                transfer_amount
-            ),
-            account=ACCOUNT_WATCHING
-        )
-        bitshares.wallet.lock()
-        bitshares.clear_cache()
-    except BaseException as err:
-        handle_error(err, "ERROR TRANSFERRING CANCELLED STAKE.")
-    pprint("Transferred cancelled stake back.")
+# def transfer_cancelled_stake(bot, transfer_amount):
+#     bitshares, memo = reconnect()
+#     try:
+#         bitshares.wallet.unlock(bot["password"])
+#         bitshares.transfer(
+#             bot["payor"],
+#             transfer_amount,
+#             "BTS",
+#             memo="Return of {} stake. {} BTS returned.".format(
+#                 bot["stop_length"],
+#                 transfer_amount
+#             ),
+#             account=ACCOUNT_WATCHING
+#         )
+#         bitshares.wallet.lock()
+#         bitshares.clear_cache()
+#     except BaseException as err:
+#         handle_error(err, "ERROR TRANSFERRING CANCELLED STAKE.")
+#     print("Transferred cancelled stake back.")
 
 
-def remove_stake_entry(account, length):
-    investment_db = database_connection()
-    cursor = investment_db.cursor()
-    try:
-        cursor.execute(
-            "DELETE FROM stakes " +
-            f"WHERE stakelength='{length}' AND user='{account}'"
-        )
-    except BaseException as err:
-        handle_error(err, "ERROR REMOVING STAKES FROM DB.")
-    investment_db.commit()
-    pprint("Removed stakes from DB.")
+# def remove_stake_entry(account, length):
+#     investment_db = database_connection()
+#     cursor = investment_db.cursor()
+#     try:
+#         cursor.execute(
+#             "DELETE FROM stakes " +
+#             f"WHERE stakelength='{length}' AND user='{account}'"
+#         )
+#     except BaseException as err:
+#         handle_error(err, "ERROR REMOVING STAKES FROM DB.")
+#     investment_db.commit()
+#     print("Removed stakes from DB.")
 
 
-def cancelled_database_entry(stakes_to_cancel):
-    current_time = time.time()
-    investment_db = database_connection()
-    cursor = investment_db.cursor()
-    while True:
-        for stake in stakes_to_cancel:
-            try:
-                with investment_db:
-                    cursor.execute(
-                        (
-                                "INSERT OR IGNORE INTO cancelledstakes " +
-                                "(block, blockid, timestamp, user, " +
-                                "asset, stakelength, stakevalidtime, amount, cancelledtime) " +
-                                "VALUES (?,?,?,?,?,?,?,?,?)"
-                        ),
-                        (
-                            stake[0],
-                            stake[1],
-                            stake[2],
-                            stake[3],
-                            stake[4],
-                            stake[5],
-                            stake[6],
-                            stake[7],
-                            current_time,
-                        ),
-                    )
-            except BaseException as err:
-                handle_error(err, "ERROR SUBMITTING CANCELS TO DB")
-        break
-    investment_db.commit()
-    pprint("Entered cancelled stakes into database.")
+# def cancelled_database_entry(stakes_to_cancel):
+#     current_time = time.time()
+#     investment_db = database_connection()
+#     cursor = investment_db.cursor()
+#     while True:
+#         for stake in stakes_to_cancel:
+#             try:
+#                 with investment_db:
+#                     cursor.execute(
+#                         (
+#                                 "INSERT OR IGNORE INTO cancelledstakes " +
+#                                 "(block, blockid, timestamp, user, " +
+#                                 "asset, stakelength, stakevalidtime, amount, cancelledtime) " +
+#                                 "VALUES (?,?,?,?,?,?,?,?,?)"
+#                         ),
+#                         (
+#                             stake[0],
+#                             stake[1],
+#                             stake[2],
+#                             stake[3],
+#                             stake[4],
+#                             stake[5],
+#                             stake[6],
+#                             stake[7],
+#                             current_time,
+#                         ),
+#                     )
+#             except BaseException as err:
+#                 handle_error(err, "ERROR SUBMITTING CANCELS TO DB")
+#         break
+#     investment_db.commit()
+#     print("Entered cancelled stakes into database.")
 
 
 def cancel_stake(bot):
@@ -333,18 +326,18 @@ def get_json_memo(memo, bot, trx):
                     bot["length_of_stake"] = "six_months"
                 elif json_memo["type"].lower() == "stop":
                     bot["length_of_stake"] = "stop"
-                    try:
-                        if json_memo["length"].lower() == "day":
-                            bot["stop_length"] = "day"
-                        elif json_memo["length"].lower() == "week":
-                            bot["stop_length"] = "week"
-                        elif json_memo["length"].lower() == "month":
-                            bot["stop_length"] = "month"
-                        else:
-                            bot["length_of_stake"] = None
-                    except BaseException as err:
-                        bot["length_of_stake"] = None
-                        handle_error(err, "INCORRECT JSON FORMAT")
+                    # try:
+                    #     if json_memo["length"].lower() == "day":
+                    #         bot["stop_length"] = "day"
+                    #     elif json_memo["length"].lower() == "week":
+                    #         bot["stop_length"] = "week"
+                    #     elif json_memo["length"].lower() == "month":
+                    #         bot["stop_length"] = "month"
+                    #     else:
+                    #         bot["length_of_stake"] = None
+                    # except BaseException as err:
+                    #     bot["length_of_stake"] = None
+                    #     handle_error(err, "INCORRECT JSON FORMAT")
         except Exception as err:
             bot["length_of_stake"] = None
             handle_error(err, "JSON ERROR.")
@@ -359,7 +352,7 @@ def reconnect():
     """
     Create a fresh connection to BitShares, and memo objects
     """
-    bitshares = BitShares(node=public_nodes(), nobroadcast=False)
+    bitshares = BitShares(node='wss://api.iamredbar.com/ws', nobroadcast=True)
     set_shared_bitshares_instance(bitshares)
     memo = Memo()
     return bitshares, memo
@@ -384,31 +377,30 @@ def database_connection():
 def account_balance_check():
     """
     Self contained function that closes program
-    if the account balance is lower than specified
+    if the account balance is higher than specified
     """
-    account_balance = Account(ACCOUNT_WATCHING).balance("BTS")
+    account_balance = Account(ACCOUNT_WATCHING).balance(INVESTMENT_ASSET)
     Account.clear_cache()
-    if account_balance < MINIMUM_ACCOUNT_BALANCE:
-        pprint(
-            'Bot does not have necessary funds to continue. ' +
-            'Adjust minimum balance or add funds to bot.'
-        )
-        exit()
+    if account_balance >= MAXIMUM_ACCOUNT_BALANCE:
+        print('Account exceeds maximum allowed value.')
+        print('Either reduce funds or celebrate raising all the money ;)')
+        exit(0)
 
 
-def get_payout_amount(stake_amount, payout_multiplier):
+def _get_payout_amount(stake_amount, payout_multiplier):
     """
-    Function to always get the correct payout
+    Get the correct payout
     """
-    unrounded_payout = Decimal(stake_amount * payout_multiplier)
-    return float(round(unrounded_payout, 5))
+    return float(round(Decimal(stake_amount * payout_multiplier), 5))
 
 
 # PRIMARY EVENT BACKBONE
 
 def main():
     """
-    Sign in, connect to database, connect to node, and add jobs to queue
+    The bot dictionary contains the information.
+    It is passed around through each part containing only
+    what it is currently working on.
     """
     bot = {'password': getpass('Input WALLET PASSWORD and press ENTER: ')}
     investment_db = database_connection()
@@ -431,7 +423,7 @@ def main():
             time.sleep(6)
     except KeyboardInterrupt:
         try:
-            pprint('Keyboard interrupt. Exiting')
+            print('Keyboard interrupt. Exiting')
         except BaseException as e:
             print(e)
             exit(0)
