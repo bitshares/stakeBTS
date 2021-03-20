@@ -1,7 +1,11 @@
 # Stake Machine
-```apt install -y sqlite3```
+```SH
+apt install -y sqlite3
+```
 
-```pip3 install bitshares uptick```
+```SH
+pip3 install bitshares uptick
+```
 
 ---
 
@@ -9,12 +13,13 @@
   - 2592000 blocks and 5184000 blocks, respectively
 - Amount of 10k, 20k, or 50k BTS
 - 15% penalty for early withdraw
-  - send 15% of your stake in a transfer with the "stop" memo
-  - if past staking period, send 1 BTS with the "stop" memo
+  - send 1 BTS with the "stop" memo, you will have 15% deducted from your
+    return
+  - if past staking period, no fee deducted. send 1 BTS with "stop" memo
 
 ---
 
-## JSON Format
+## JSON Format for Transfer
 ```JSON
 {
   "type": "<LENGTH_OF_STAKE>"

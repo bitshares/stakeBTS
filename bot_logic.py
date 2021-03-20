@@ -24,7 +24,7 @@ from bitshares.instance import set_shared_bitshares_instance
 # USER INPUTS
 ACCOUNT_WATCHING = "iamredbar2"
 NODE = 'wss://testnet.dex.trading/'
-MAXIMUM_ACCOUNT_BALANCE = 200
+MAXIMUM_ACCOUNT_BALANCE = 20000
 # LOW_INVEST_AMOUNT = 10000
 # MID_INVEST_AMOUNT = 20000
 # HIGH_INVEST_AMOUNT = 50000
@@ -159,8 +159,8 @@ def stake_organizer(bot, investment_db):
                         (
                                 "INSERT OR IGNORE INTO stakes " +
                                 "(block, blockid, timestamp, user, " +
-                                "asset, stakelength, stakevalidtime, amount) " +
-                                "VALUES (?,?,?,?,?,?,?,?)"
+                                "asset, stakelength, stakevalidtime, amount, earlyamount) " +
+                                "VALUES (?,?,?,?,?,?,?,?,?)"
                         ),
                         (
                             bot["block_num"],
@@ -171,6 +171,7 @@ def stake_organizer(bot, investment_db):
                             bot["length_of_stake"],
                             stake_valid_block,
                             bot["amount"],
+                            bot['early_amount']
                         ),
                     )
                 break
@@ -257,8 +258,13 @@ def cancel_stake(bot):
     remove_stake_entry(bot["payor"])
     cancelled_transfer_amount = 0
     for stake in stakes_to_cancel:
-        cancelled_transfer_amount += stake[7]
-        print(cancelled_transfer_amount)
+        print(f'valid block: {stake[6]}')
+        if bot['block_num'] >= stake[6]:
+            cancelled_transfer_amount += stake[7]
+            print(f'full stake {cancelled_transfer_amount} returned')
+        else:
+            cancelled_transfer_amount += stake[8]
+            print(f'early stake {cancelled_transfer_amount} returned')
     transfer_cancelled_stake(bot, cancelled_transfer_amount)
     investment_db.commit()
 
@@ -271,6 +277,8 @@ def check_block(memo, bot, investment_db, block):
                 bot["asset_type"] = str(trx[1]["amount"]["asset_id"])
                 asset_precision = Asset(bot["asset_type"]).precision
                 bot["amount"] = int(trx[1]["amount"]["amount"]) / (10 ** asset_precision)
+                bot['early_amount'] = bot['amount'] * 0.85
+                # print(f'Early amount: {bot["early_amount"]}')
                 Account.clear_cache()
                 Asset.clear_cache()
                 bot = get_json_memo(memo, bot, trx)
@@ -286,11 +294,11 @@ def check_block(memo, bot, investment_db, block):
                     else:
                         bot['stake_valid_block'] = bot['block_num'] + SIX_BLOCK_MONTHS
                     bot['timestamp'] = time.time()
-                    if bot['amount'] == 5 or bot['amount'] == 10 or bot['amount'] == 20:
+                    if bot['amount'] == LOW_INVEST_AMOUNT or bot['amount'] == MID_INVEST_AMOUNT or bot['amount'] == HIGH_INVEST_AMOUNT:
                         stake_organizer(bot, investment_db)
                     else:
                         print('Wrong amount sent. Everything else was good.')
-                elif bot["length_of_stake"] == "stop" and bot["amount"]:
+                elif bot["length_of_stake"] == "stop":
                     cancel_stake(bot)
     bot["block_num"] += 1
 
@@ -343,18 +351,6 @@ def get_json_memo(memo, bot, trx):
                     bot["length_of_stake"] = "six_months"
                 elif json_memo["type"].lower() == "stop":
                     bot["length_of_stake"] = "stop"
-                    # try:
-                    #     if json_memo["length"].lower() == "day":
-                    #         bot["stop_length"] = "day"
-                    #     elif json_memo["length"].lower() == "week":
-                    #         bot["stop_length"] = "week"
-                    #     elif json_memo["length"].lower() == "month":
-                    #         bot["stop_length"] = "month"
-                    #     else:
-                    #         bot["length_of_stake"] = None
-                    # except BaseException as err:
-                    #     bot["length_of_stake"] = None
-                    #     handle_error(err, "INCORRECT JSON FORMAT")
         except Exception as err:
             bot["length_of_stake"] = None
             handle_error(err, "JSON ERROR.")
@@ -373,9 +369,10 @@ def reconnect():
 
 
 def handle_error(err, err_string):
-    print("{}".format(err_string), file=open("logfile.txt", "a"))
+    print(f'{err_string}', file=open("logfile.txt", "a"))
     print("Type error: {}".format(str(err)), file=open("logfile.txt", "a"))
     print(format_exc(), file=open("logfile.txt", "a"))
+    print('----------------')
 
 
 def database_connection():
