@@ -22,17 +22,27 @@ from bitshares.memo import Memo
 from bitshares.instance import set_shared_bitshares_instance
 
 # USER INPUTS
-ACCOUNT_WATCHING = "development.bitshares.org"
-MAXIMUM_ACCOUNT_BALANCE = 2
-TEN_PAYOUT = 0.015
-TWENTY_PAYOUT = 0.025
-FIFTY_PAYOUT = 0.055
+ACCOUNT_WATCHING = "iamredbar2"
+NODE = 'wss://testnet.dex.trading/'
+MAXIMUM_ACCOUNT_BALANCE = 200
+# LOW_INVEST_AMOUNT = 10000
+# MID_INVEST_AMOUNT = 20000
+# HIGH_INVEST_AMOUNT = 50000
+LOW_INVEST_AMOUNT = 10
+MID_INVEST_AMOUNT = 20
+HIGH_INVEST_AMOUNT = 50
+# TEN_PAYOUT = 0.015
+# TWENTY_PAYOUT = 0.025
+# FIFTY_PAYOUT = 0.055
+TEN_PAYOUT = 0.1
+TWENTY_PAYOUT = 0.15
+FIFTY_PAYOUT = 0.25
 CANCEL_AMOUNT = 1
 
 THREE_BLOCK_MONTHS = 2592000  # blocks per 3 months
 SIX_BLOCK_MONTHS = 5184000  # blocks per 6 months
 
-INVESTMENT_ASSET = 'BTS'
+INVESTMENT_ASSET = 'TEST'  # 'BTS'
 
 scheduler = BackgroundScheduler()
 scheduler.start()
@@ -80,7 +90,7 @@ def payout_database_entry(valid_stakes):
 
 def payout_transfer(valid_stakes, password):
     """
-    Transfers all valid stakes 
+    Transfers all valid stakes
     """
     bitshares, memo = reconnect()
     for stake in valid_stakes:
@@ -109,146 +119,151 @@ def payout_weekly_stake(password):
     valid_stakes = []
     for stake in weekly_stakes:
         payout_amount = 0
-        if stake[4] == 10000:
+        if float(stake[4]) == LOW_INVEST_AMOUNT:
             payout_amount = _get_payout_amount(float(stake[4]), TEN_PAYOUT)
-        elif stake[4] == 20000:
+        elif float(stake[4]) == MID_INVEST_AMOUNT:
             payout_amount = _get_payout_amount(float(stake[4]), TWENTY_PAYOUT)
-        elif stake[4] == 50000:
+        elif float(stake[4]) == HIGH_INVEST_AMOUNT:
             payout_amount = _get_payout_amount(float(stake[4]), FIFTY_PAYOUT)
+        print(f'Payout amount: {payout_amount}')
         valid_stakes.append({
             "recipient": stake[1],
             "stake_amount": stake[4],
             "payout_amount": payout_amount,
             "block_id": stake[0],
+            "stake_length": stake[3],
             "timestamp": current_time,
         })
-    print(f'Triggering {len(valid_stakes)} weekly stakes.')
+    print(f'Triggering {len(valid_stakes)} weekly payouts.')
     payout_database_entry(valid_stakes)
     payout_transfer(valid_stakes, password)
 
 
 def stake_organizer(bot, investment_db):
+    stake_valid_block = bot["stake_valid_block"]
     cursor = investment_db.cursor()
-    stake_valid_time = bot["timestamp"]
-    while True and bot["length_of_stake"] is not None:
-        try:
-            with investment_db:
-                cursor.execute(
-                    (
-                            "INSERT OR IGNORE INTO stakes " +
-                            "(block, blockid, timestamp, user, " +
-                            "asset, stakelength, stakevalidtime, amount) " +
-                            "VALUES (?,?,?,?,?,?,?,?)"
-                    ),
-                    (
-                        bot["block_num"],
-                        bot["block_id"],
-                        bot["timestamp"],
-                        bot["payor"],
-                        bot["asset_type"],
-                        bot["length_of_stake"],
-                        stake_valid_time,
-                        bot["amount"],
-                    ),
-                )
-            break
-        except BaseException as err:
-            handle_error(err, "ERROR SUBMITTING STAKE TO DB")
+    cursor.execute("SELECT user FROM stakes")
+    prior_investments = cursor.fetchall()
+    # print(prior_investments)
+    prior_flag = False
+    for person in prior_investments:
+        if bot['payor'] == person[0]:
+            prior_flag = True
+            print('user has prior investment')
+    if not prior_flag:
+        print("New stake")
+        while True and bot["length_of_stake"] is not None:
+            try:
+                with investment_db:
+                    cursor.execute(
+                        (
+                                "INSERT OR IGNORE INTO stakes " +
+                                "(block, blockid, timestamp, user, " +
+                                "asset, stakelength, stakevalidtime, amount) " +
+                                "VALUES (?,?,?,?,?,?,?,?)"
+                        ),
+                        (
+                            bot["block_num"],
+                            bot["block_id"],
+                            bot["timestamp"],
+                            bot["payor"],
+                            bot["asset_type"],
+                            bot["length_of_stake"],
+                            stake_valid_block,
+                            bot["amount"],
+                        ),
+                    )
+                break
+            except BaseException as err:
+                handle_error(err, "ERROR SUBMITTING STAKE TO DB")
 
 
-# def transfer_cancelled_stake(bot, transfer_amount):
-#     bitshares, memo = reconnect()
-#     try:
-#         bitshares.wallet.unlock(bot["password"])
-#         bitshares.transfer(
-#             bot["payor"],
-#             transfer_amount,
-#             "BTS",
-#             memo="Return of {} stake. {} BTS returned.".format(
-#                 bot["stop_length"],
-#                 transfer_amount
-#             ),
-#             account=ACCOUNT_WATCHING
-#         )
-#         bitshares.wallet.lock()
-#         bitshares.clear_cache()
-#     except BaseException as err:
-#         handle_error(err, "ERROR TRANSFERRING CANCELLED STAKE.")
-#     print("Transferred cancelled stake back.")
+def transfer_cancelled_stake(bot, transfer_amount):
+    bitshares, memo = reconnect()
+    try:
+        bitshares.wallet.unlock(bot["password"])
+        bitshares.transfer(
+            bot["payor"],
+            transfer_amount,
+            INVESTMENT_ASSET,
+            memo='Investment returned',
+            account=ACCOUNT_WATCHING
+        )
+        bitshares.wallet.lock()
+        bitshares.clear_cache()
+    except BaseException as err:
+        handle_error(err, "ERROR TRANSFERRING CANCELLED STAKE.")
+    print("Transferred cancelled stake back.")
 
 
-# def remove_stake_entry(account, length):
-#     investment_db = database_connection()
-#     cursor = investment_db.cursor()
-#     try:
-#         cursor.execute(
-#             "DELETE FROM stakes " +
-#             f"WHERE stakelength='{length}' AND user='{account}'"
-#         )
-#     except BaseException as err:
-#         handle_error(err, "ERROR REMOVING STAKES FROM DB.")
-#     investment_db.commit()
-#     print("Removed stakes from DB.")
+def remove_stake_entry(account):
+    investment_db = database_connection()
+    cursor = investment_db.cursor()
+    try:
+        cursor.execute(
+            "DELETE FROM stakes " +
+            f"WHERE user='{account}'"
+        )
+    except BaseException as err:
+        handle_error(err, "ERROR REMOVING STAKES FROM DB.")
+    investment_db.commit()
+    print("removed investment from db")
 
 
-# def cancelled_database_entry(stakes_to_cancel):
-#     current_time = time.time()
-#     investment_db = database_connection()
-#     cursor = investment_db.cursor()
-#     while True:
-#         for stake in stakes_to_cancel:
-#             try:
-#                 with investment_db:
-#                     cursor.execute(
-#                         (
-#                                 "INSERT OR IGNORE INTO cancelledstakes " +
-#                                 "(block, blockid, timestamp, user, " +
-#                                 "asset, stakelength, stakevalidtime, amount, cancelledtime) " +
-#                                 "VALUES (?,?,?,?,?,?,?,?,?)"
-#                         ),
-#                         (
-#                             stake[0],
-#                             stake[1],
-#                             stake[2],
-#                             stake[3],
-#                             stake[4],
-#                             stake[5],
-#                             stake[6],
-#                             stake[7],
-#                             current_time,
-#                         ),
-#                     )
-#             except BaseException as err:
-#                 handle_error(err, "ERROR SUBMITTING CANCELS TO DB")
-#         break
-#     investment_db.commit()
-#     print("Entered cancelled stakes into database.")
+def cancelled_database_entry(stakes_to_cancel):
+    current_time = time.time()
+    investment_db = database_connection()
+    cursor = investment_db.cursor()
+    while True:
+        for stake in stakes_to_cancel:
+            try:
+                with investment_db:
+                    cursor.execute(
+                        (
+                                "INSERT OR IGNORE INTO cancelledstakes " +
+                                "(block, blockid, timestamp, user, " +
+                                "asset, stakelength, stakevalidtime, amount, cancelledtime) " +
+                                "VALUES (?,?,?,?,?,?,?,?,?)"
+                        ),
+                        (
+                            stake[0],
+                            stake[1],
+                            stake[2],
+                            stake[3],
+                            stake[4],
+                            stake[5],
+                            stake[6],
+                            stake[7],
+                            current_time,
+                        ),
+                    )
+            except BaseException as err:
+                handle_error(err, "ERROR SUBMITTING CANCELS TO DB")
+        break
+    investment_db.commit()
+    print("entered cancelled stakes into database")
 
 
 def cancel_stake(bot):
-    print('Should be cancelling an investment here...')
-    # print("STAKE {} SHOULD BE CANCELLED FOR {}.".format(bot["stop_length"], bot["payor"]))
-    # investment_db = database_connection()
-    # cursor = investment_db.cursor()
-    # cursor.execute(
-    #     "SELECT * FROM stakes " +
-    #     "WHERE stakelength='{}' AND user='{}'". \
-    #     format(bot["stop_length"], bot["payor"])
-    # )
-    # stakes_to_cancel = cursor.fetchall()
-    # cancelled_database_entry(stakes_to_cancel)
-    # remove_stake_entry(bot["payor"], bot["stop_length"])
-    # cancelled_transfer_amount = 0
-    # for stake in stakes_to_cancel:
-    #     cancelled_transfer_amount += stake[7]
-    # transfer_cancelled_stake(bot, cancelled_transfer_amount)
-    # investment_db.commit()
+    print(f'cancel stake for {bot["payor"]}')
+    investment_db = database_connection()
+    cursor = investment_db.cursor()
+    cursor.execute(
+        "SELECT * FROM stakes " +
+        f"WHERE user='{bot['payor']}'"
+    )
+    stakes_to_cancel = cursor.fetchall()
+    cancelled_database_entry(stakes_to_cancel)
+    remove_stake_entry(bot["payor"])
+    cancelled_transfer_amount = 0
+    for stake in stakes_to_cancel:
+        cancelled_transfer_amount += stake[7]
+        print(cancelled_transfer_amount)
+    transfer_cancelled_stake(bot, cancelled_transfer_amount)
+    investment_db.commit()
 
 
 def check_block(memo, bot, investment_db, block):
-    """
-    Check the block for incoming transactions to bot
-    """
     for trxs in block["transactions"]:
         for operation, trx in enumerate(trxs["operations"]):
             if trx[0] == 0 and Account(trx[1]["to"]).name == ACCOUNT_WATCHING:
@@ -263,14 +278,19 @@ def check_block(memo, bot, investment_db, block):
                     print('Wrong asset transferred.')
                 elif bot["length_of_stake"] is None:
                     print('Wrong memo format.')
-                elif bot["length_of_stake"] != "funding" \
-                        and bot["length_of_stake"] != "stop" \
+                elif bot["length_of_stake"] != "stop" \
                         and bot["length_of_stake"] is not None:
                     bot["block_id"] = f'{bot["block_num"]}.{str(operation)}'
-                    bot["timestamp"] = time.time()
-                    print("New stake")
-                    stake_organizer(bot, investment_db)
-                elif bot["length_of_stake"] == "stop" and bot["amount"] == CANCEL_AMOUNT:
+                    if bot['length_of_stake'] == 'three_months':
+                        bot["stake_valid_block"] = bot['block_num'] + THREE_BLOCK_MONTHS
+                    else:
+                        bot['stake_valid_block'] = bot['block_num'] + SIX_BLOCK_MONTHS
+                    bot['timestamp'] = time.time()
+                    if bot['amount'] == 5 or bot['amount'] == 10 or bot['amount'] == 20:
+                        stake_organizer(bot, investment_db)
+                    else:
+                        print('Wrong amount sent. Everything else was good.')
+                elif bot["length_of_stake"] == "stop" and bot["amount"]:
                     cancel_stake(bot)
     bot["block_num"] += 1
 
@@ -309,9 +329,6 @@ def scan_chain(memo, bot, investment_db):
 
 
 def get_json_memo(memo, bot, trx):
-    """
-    Collect the info from memo and check for validity
-    """
     try:
         memo.blockchain.wallet.unlock(bot["password"])
         decrypted_memo = memo.decrypt(trx[1]["memo"])
@@ -349,36 +366,23 @@ def get_json_memo(memo, bot, trx):
 
 # HELPER FUNCTIONS
 def reconnect():
-    """
-    Create a fresh connection to BitShares, and memo objects
-    """
-    bitshares = BitShares(node='wss://api.iamredbar.com/ws', nobroadcast=True)
+    bitshares = BitShares(node=NODE, nobroadcast=False)
     set_shared_bitshares_instance(bitshares)
     memo = Memo()
     return bitshares, memo
 
 
 def handle_error(err, err_string):
-    """
-    Custom error handling, perform stack trace
-    """
     print("{}".format(err_string), file=open("logfile.txt", "a"))
     print("Type error: {}".format(str(err)), file=open("logfile.txt", "a"))
     print(format_exc(), file=open("logfile.txt", "a"))
 
 
 def database_connection():
-    """
-    Fresh connection to the database.
-    """
     return sqlite3_connect('investment.db')
 
 
 def account_balance_check():
-    """
-    Self contained function that closes program
-    if the account balance is higher than specified
-    """
     account_balance = Account(ACCOUNT_WATCHING).balance(INVESTMENT_ASSET)
     Account.clear_cache()
     if account_balance >= MAXIMUM_ACCOUNT_BALANCE:
@@ -388,9 +392,6 @@ def account_balance_check():
 
 
 def _get_payout_amount(stake_amount, payout_multiplier):
-    """
-    Get the correct payout
-    """
     return float(round(Decimal(stake_amount * payout_multiplier), 5))
 
 
@@ -414,7 +415,7 @@ def main():
             block = scan_chain(memo, bot, investment_db)
             if block == last_block:
                 block_stall += 1
-                print('Blockstall: {}'.format(block_stall))
+                print('block stall: {}'.format(block_stall))
             else:
                 block_stall = 0
                 last_block = block
