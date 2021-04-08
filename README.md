@@ -4,7 +4,7 @@ apt install -y sqlite3
 ```
 
 ```SH
-pip3 install bitshares uptick
+pip3 install bitshares uptick apscheduler
 ```
 
 ---
