@@ -50,7 +50,7 @@ def add_jobs(password):
     """
     Function to add jobs to apscheduler. These are payout jobs.
     """
-    scheduler.add_job(payout_weekly_stake, trigger='cron', args=[password], minute='*')
+    scheduler.add_job(payout_stake, trigger='cron', args=[password], minute='*')
 
 
 def payout_database_entry(valid_stakes):
@@ -108,7 +108,7 @@ def payout_transfer(valid_stakes, password):
         print("Transferred stake payout.")
 
 
-def payout_weekly_stake(password):
+def payout_stake(password):
     investment_db = database_connection()
     cursor = investment_db.cursor()
     current_time = time.time()
@@ -126,7 +126,7 @@ def payout_weekly_stake(password):
             "stake_length": stake[3],
             "timestamp": current_time,
         })
-    print(f'Triggering {len(valid_stakes)} weekly payouts.')
+    print(f'Triggering {len(valid_stakes)} payouts.')
     payout_database_entry(valid_stakes)
     payout_transfer(valid_stakes, password)
 
@@ -346,6 +346,8 @@ def get_json_memo(memo, bot, trx):
                     bot["length_of_stake"] = "three_months"
                 elif json_memo["type"].lower() == "six_months":
                     bot["length_of_stake"] = "six_months"
+                elif json_memo["type"].lower() == "twelve_months":
+                    bot["length_of_stake"] = "twelve_months"
                 elif json_memo["type"].lower() == "stop":
                     bot["length_of_stake"] = "stop"
         except Exception as err:
@@ -361,7 +363,7 @@ def get_json_memo(memo, bot, trx):
 def reconnect():
     bitshares = BitShares(node=NODE, nobroadcast=False)
     set_shared_bitshares_instance(bitshares)
-    memo = Memo()
+    memo = Memo(blockchain_instance=bitshares)
     return bitshares, memo
 
 
