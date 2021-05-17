@@ -229,8 +229,8 @@ def cancelled_database_entry(stakes_to_cancel, bot):
                             stake[3],
                             stake[4],
                             stake[5],
+                            stake[6],
                             cancelled_transfer_amount,
-                            stake[7],
                             current_time,
                         ),
                     )
