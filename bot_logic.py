@@ -203,12 +203,16 @@ def remove_stake_entry(account):
     print("removed investment from db")
 
 
-def cancelled_database_entry(stakes_to_cancel):
+def cancelled_database_entry(stakes_to_cancel, bot):
     current_time = time.time()
     investment_db = database_connection()
     cursor = investment_db.cursor()
     while True:
         for stake in stakes_to_cancel:
+            if bot['block_num'] >= stake[6]:
+                cancelled_transfer_amount = stake[7]
+            else:
+                cancelled_transfer_amount = stake[8]
             try:
                 with investment_db:
                     cursor.execute(
@@ -225,7 +229,7 @@ def cancelled_database_entry(stakes_to_cancel):
                             stake[3],
                             stake[4],
                             stake[5],
-                            stake[6],
+                            cancelled_transfer_amount,
                             stake[7],
                             current_time,
                         ),
@@ -246,7 +250,7 @@ def cancel_stake(bot):
         f"WHERE user='{bot['payor']}'"
     )
     stakes_to_cancel = cursor.fetchall()
-    cancelled_database_entry(stakes_to_cancel)
+    cancelled_database_entry(stakes_to_cancel, bot)
     remove_stake_entry(bot["payor"])
     cancelled_transfer_amount = 0
     for stake in stakes_to_cancel:
