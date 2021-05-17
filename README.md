@@ -33,8 +33,9 @@ pip3 install -r requirements.txt
   - 15% penalty for early withdraw
   - send 1 BTS with the "stop" memo, you will have 15% deducted from your
     return
+- Automatic payout transfers monthly (date and time to be determined)
 - No automatic transfer back if wrong amount
-- No transfer back if user already has stake
+- No transfer back if user already has a stake
 - No payout account balance check
 
 ### to-do

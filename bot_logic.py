@@ -204,7 +204,6 @@ def remove_stake_entry(account):
 
 
 def cancelled_database_entry(stakes_to_cancel, bot):
-    current_time = time.time()
     investment_db = database_connection()
     cursor = investment_db.cursor()
     while True:
@@ -231,7 +230,7 @@ def cancelled_database_entry(stakes_to_cancel, bot):
                             stake[5],
                             stake[6],
                             cancelled_transfer_amount,
-                            current_time,
+                            bot['block_num'],
                         ),
                     )
             except BaseException as err:
