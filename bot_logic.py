@@ -1,6 +1,6 @@
 """
 BitShares.org StakeMachine
-Interest Payment on Investment for
+Interest Payment on Staking for
 BitShares Management Group Co. Ltd.
 """
 # Standard imports
@@ -24,25 +24,23 @@ from bitshares.instance import set_shared_bitshares_instance
 # USER INPUTS
 ACCOUNT_WATCHING = "iamredbar2"
 NODE = 'wss://testnet.dex.trading/'
-MAXIMUM_ACCOUNT_BALANCE = 20000
-# LOW_INVEST_AMOUNT = 10000
-# MID_INVEST_AMOUNT = 20000
-# HIGH_INVEST_AMOUNT = 50000
-LOW_INVEST_AMOUNT = 10
-MID_INVEST_AMOUNT = 20
-HIGH_INVEST_AMOUNT = 50
-# TEN_PAYOUT = 0.015
-# TWENTY_PAYOUT = 0.025
-# FIFTY_PAYOUT = 0.055
-TEN_PAYOUT = 0.1
-TWENTY_PAYOUT = 0.15
-FIFTY_PAYOUT = 0.25
+# MAXIMUM_ACCOUNT_BALANCE = 20000
+# LOW_INVEST_AMOUNT = 25000
+# MID_INVEST_AMOUNT = 50000
+# HIGH_INVEST_AMOUNT = 100000
+# TOP_INVEST_AMOUNT = 200000
+LOW_INVEST_AMOUNT = 25
+MID_INVEST_AMOUNT = 50
+HIGH_INVEST_AMOUNT = 100
+TOP_INVEST_AMOUNT = 200
+PAYOUT = 0.08
 CANCEL_AMOUNT = 1
 
 THREE_BLOCK_MONTHS = 2592000  # blocks per 3 months
 SIX_BLOCK_MONTHS = 5184000  # blocks per 6 months
+TWELVE_BLOCK_MONTHS = 5184000 * 2 # blocks per 12 months
 
-INVESTMENT_ASSET = 'TEST'  # 'BTS'
+STAKING_ASSET = 'TEST'  # 'BTS'
 
 scheduler = BackgroundScheduler()
 scheduler.start()
@@ -99,8 +97,8 @@ def payout_transfer(valid_stakes, password):
             bitshares.transfer(
                 stake["recipient"],
                 stake["payout_amount"],
-                INVESTMENT_ASSET,
-                memo=f'Payout of {stake["payout_amount"]} {INVESTMENT_ASSET}',
+                STAKING_ASSET,
+                memo=f'Payout of {stake["payout_amount"]} {STAKING_ASSET}',
                 account=ACCOUNT_WATCHING
             )
             bitshares.wallet.lock()
@@ -118,13 +116,7 @@ def payout_weekly_stake(password):
     weekly_stakes = cursor.fetchall()
     valid_stakes = []
     for stake in weekly_stakes:
-        payout_amount = 0
-        if float(stake[4]) == LOW_INVEST_AMOUNT:
-            payout_amount = _get_payout_amount(float(stake[4]), TEN_PAYOUT)
-        elif float(stake[4]) == MID_INVEST_AMOUNT:
-            payout_amount = _get_payout_amount(float(stake[4]), TWENTY_PAYOUT)
-        elif float(stake[4]) == HIGH_INVEST_AMOUNT:
-            payout_amount = _get_payout_amount(float(stake[4]), FIFTY_PAYOUT)
+        payout_amount = _get_payout_amount(float(stake[4]), PAYOUT)
         print(f'Payout amount: {payout_amount}')
         valid_stakes.append({
             "recipient": stake[1],
@@ -186,7 +178,7 @@ def transfer_cancelled_stake(bot, transfer_amount):
         bitshares.transfer(
             bot["payor"],
             transfer_amount,
-            INVESTMENT_ASSET,
+            STAKING_ASSET,
             memo='Investment returned',
             account=ACCOUNT_WATCHING
         )
@@ -291,10 +283,15 @@ def check_block(memo, bot, investment_db, block):
                     bot["block_id"] = f'{bot["block_num"]}.{str(operation)}'
                     if bot['length_of_stake'] == 'three_months':
                         bot["stake_valid_block"] = bot['block_num'] + THREE_BLOCK_MONTHS
-                    else:
+                    elif bot['length_of_stake'] == 'six_months':
                         bot['stake_valid_block'] = bot['block_num'] + SIX_BLOCK_MONTHS
+                    elif bot['length_of_stake'] == 'twelve_months':
+                        bot['stake_valid_block'] = bot['block_num'] + TWELVE_BLOCK_MONTHS
+                    else:
+                        print('Wrong vesting period sent')
                     bot['timestamp'] = time.time()
-                    if bot['amount'] == LOW_INVEST_AMOUNT or bot['amount'] == MID_INVEST_AMOUNT or bot['amount'] == HIGH_INVEST_AMOUNT:
+                    if bot['amount'] == LOW_INVEST_AMOUNT or bot['amount'] == MID_INVEST_AMOUNT \
+                            or bot['amount'] == HIGH_INVEST_AMOUNT or bot['amount'] == TOP_INVEST_AMOUNT:
                         stake_organizer(bot, investment_db)
                     else:
                         print('Wrong amount sent. Everything else was good.')
@@ -379,13 +376,13 @@ def database_connection():
     return sqlite3_connect('investment.db')
 
 
-def account_balance_check():
-    account_balance = Account(ACCOUNT_WATCHING).balance(INVESTMENT_ASSET)
-    Account.clear_cache()
-    if account_balance >= MAXIMUM_ACCOUNT_BALANCE:
-        print('Account exceeds maximum allowed value.')
-        print('Either reduce funds or celebrate raising all the money ;)')
-        exit(0)
+# def account_balance_check():
+#     account_balance = Account(ACCOUNT_WATCHING).balance(STAKING_ASSET)
+#     Account.clear_cache()
+#     if account_balance >= MAXIMUM_ACCOUNT_BALANCE:
+#         print('Account exceeds maximum allowed value.')
+#         print('Either reduce funds or celebrate raising all the money ;)')
+#         exit(0)
 
 
 def _get_payout_amount(stake_amount, payout_multiplier):
@@ -393,7 +390,6 @@ def _get_payout_amount(stake_amount, payout_multiplier):
 
 
 # PRIMARY EVENT BACKBONE
-
 def main():
     """
     The bot dictionary contains the information.
@@ -408,7 +404,7 @@ def main():
     try:
         while True:
             bitshares, memo = reconnect()
-            account_balance_check()
+            # account_balance_check()
             block = scan_chain(memo, bot, investment_db)
             if block == last_block:
                 block_stall += 1

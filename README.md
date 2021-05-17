@@ -1,45 +1,67 @@
 # Stake Machine
-```SH
+
+
+## Install instructions
+
+Install SQLite3:
+```shell
 apt install -y sqlite3
 ```
 
-```SH
-pip3 install bitshares uptick apscheduler
+Create and activate environment:
+```shell
+python3 -m venv env
+source env/bin/activate
+```
+
+Install requirements into environment:
+```shell
+pip3 install -r requirements.txt
 ```
 
 ---
 
-- 3 or 6 month stake
-  - 2592000 blocks and 5184000 blocks, respectively
-- Amount of 10k, 20k, or 50k BTS
-- 15% penalty for early withdraw
+## Staking Logic
+
+- 1 Stake per BitShares account
+- 8% payout per month, 96% APY
+- 3, 6, or 12 month stake
+  - 2,592,000, 5,184,000, and 10,368,000 blocks, respectively
+- Amount of 25k, 50k, 100k, or 200k BTS
+- Withdrawal:
+  - if past staking period, no fee deducted. send 1 BTS with "stop" memo
+  - 15% penalty for early withdraw
   - send 1 BTS with the "stop" memo, you will have 15% deducted from your
     return
-  - if past staking period, no fee deducted. send 1 BTS with "stop" memo
+- No automatic transfer back if wrong amount
+- No payout account balance check
 
+### to-do
+- Check for LTM
+- Brainstorm receipt methods
 ---
 
-## JSON Format for Transfer
+## JSON Format
+
 ```JSON
-{
-  "type": "<LENGTH_OF_STAKE>"
-}
+{"type":"<LENGTH_OF_STAKE>"}
 ```
-`LENGTH_OF_STAKE` = "three_months", or "six_months" (with quotation marks). Other option: "stop"
+`LENGTH_OF_STAKE`
+- "three_months"
+- "six_months"
+- "twelve_months"
+- "stop"
 
 ### Valid JSON examples:
 ```JSON
-{
-  "type": "three_months"
-}
+{"type":"three_months"}
 ```
 ```JSON
-{
-  "type": "six_months"
-}
+{"type":"six_months"}
 ```
 ```JSON
-{
-  "type": "stop"
-}
+{"type":"twelve_months"}
+```
+```JSON
+{"type":"stop"}
 ```
