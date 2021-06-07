@@ -24,6 +24,7 @@ from bitshares.instance import set_shared_bitshares_instance
 # USER INPUTS
 ACCOUNT_WATCHING = "iamredbar2"
 NODE = 'wss://testnet.dex.trading/'
+STAKING_ASSET = 'TEST'  # 'BTS'
 # MAXIMUM_ACCOUNT_BALANCE = 20000
 # LOW_INVEST_AMOUNT = 25000
 # MID_INVEST_AMOUNT = 50000
@@ -40,8 +41,6 @@ THREE_BLOCK_MONTHS = 2592000  # blocks per 3 months
 SIX_BLOCK_MONTHS = 5184000  # blocks per 6 months
 TWELVE_BLOCK_MONTHS = 5184000 * 2 # blocks per 12 months
 
-STAKING_ASSET = 'TEST'  # 'BTS'
-
 scheduler = BackgroundScheduler()
 scheduler.start()
 
@@ -50,7 +49,7 @@ def add_jobs(password):
     """
     Function to add jobs to apscheduler. These are payout jobs.
     """
-    scheduler.add_job(payout_stake, trigger='cron', args=[password], minute='*')
+    scheduler.add_job(payout_stake, trigger='cron', args=[password], minute='*/2')
 
 
 def payout_database_entry(valid_stakes):
@@ -169,6 +168,21 @@ def stake_organizer(bot, investment_db):
                 break
             except BaseException as err:
                 handle_error(err, "ERROR SUBMITTING STAKE TO DB")
+        # transfer 1 BTS back with memo 'Stake accepted and confirmed'
+        bitshares, memo = reconnect()
+        try:
+            bitshares.wallet.unlock(bot['password'])
+            bitshares.transfer(
+                bot['payor'],
+                1,
+                STAKING_ASSET,
+                memo=f'Stake accepted and confirmed',
+                account=ACCOUNT_WATCHING
+            )
+            bitshares.wallet.lock()
+            bitshares.clear_cache()
+        except BaseException as err:
+            handle_error(err, 'ERROR TRANSFERRING CONFIRMATION BACK TO USER')
 
 
 def transfer_cancelled_stake(bot, transfer_amount):

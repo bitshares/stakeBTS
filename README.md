@@ -1,6 +1,5 @@
 # Stake Machine
 
-
 ## Install instructions
 
 Install SQLite3:
@@ -38,9 +37,6 @@ pip3 install -r requirements.txt
 - No transfer back if user already has a stake
 - No payout account balance check
 
-### to-do
-- Check for LTM
-- Brainstorm receipt methods
 ---
 
 ## JSON Format
