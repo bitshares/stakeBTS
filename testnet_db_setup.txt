@@ -1,7 +1,7 @@
 CREATE TABLE last_check (
     blockheight INTEGER
 );
-INSERT INTO last_check (blockheight) VALUES (46677180);
+INSERT INTO last_check (blockheight) VALUES (47287068);
 
 CREATE TABLE stakes (
     block INTEGER,

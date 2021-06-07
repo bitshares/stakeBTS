@@ -143,7 +143,7 @@ def stake_organizer(bot, investment_db):
             print('user has prior investment')
     if not prior_flag:
         print("New stake")
-        while bot["length_of_stake"] is not None:
+        while True and bot["length_of_stake"] is not None:
             try:
                 with investment_db:
                     cursor.execute(
@@ -165,11 +165,12 @@ def stake_organizer(bot, investment_db):
                             bot['early_amount']
                         ),
                     )
+                break
             except BaseException as err:
                 handle_error(err, "ERROR SUBMITTING STAKE TO DB")
         # transfer 1 BTS back with memo 'Stake accepted and confirmed'
+        bitshares, memo = reconnect()
         try:
-            bitshares, memo = reconnect()
             bitshares.wallet.unlock(bot['password'])
             bitshares.transfer(
                 bot['payor'],
