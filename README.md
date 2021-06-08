@@ -1,4 +1,4 @@
-# Stake Machine
+# StakeBTS Python Bot
 
 ## Install instructions
 
@@ -18,21 +18,22 @@ Install requirements into environment:
 pip3 install -r requirements.txt
 ```
 
+NOTICE: UPTICK is a must to operate bot properly. Account that you wish to use for the bot must be imported with all 3 private keys (Owner, Active and Memo) into the uptick. On BOT start 
+you will be asked to enter WALLET password from the uptick.
+
 ---
 
 ## Staking Logic
 
-- 1 Stake per BitShares account
+- 1 Stake per 1 BitShares account
 - 8% payout per month, 96% APY
 - 3, 6, or 12 month stake
   - 2,592,000, 5,184,000, and 10,368,000 blocks, respectively
 - Amount of 25k, 50k, 100k, or 200k BTS
 - Withdrawal:
-  - if past staking period, no fee deducted. send 1 BTS with "stop" memo
-  - 15% penalty for early withdraw
-  - send 1 BTS with the "stop" memo, you will have 15% deducted from your
-    return
-- Automatic payout transfers monthly (date and time to be determined)
+  - if past staking period, no fee deducted, automatic return of the base staked
+  - Early withdrawals - send 1 BTS with the {"type":"stop"} memo, you will have 15% deducted from base as penalty for braking agreement.
+- Automatic payout transfers monthly (every 30 days, 0 hours and 1 minute)
 - No automatic transfer back if wrong amount
 - No transfer back if user already has a stake
 - No payout account balance check
@@ -63,3 +64,6 @@ pip3 install -r requirements.txt
 ```JSON
 {"type":"stop"}
 ```
+
+
+This software is sponsored and managed by BitShares Management Group Limited
