@@ -26,10 +26,10 @@ you will be asked to enter WALLET password from the uptick.
 ## Staking Logic
 
 - 1 Stake per 1 BitShares account
-- 8% payout per month, 96% APY
-- 3, 6, or 12 month stake
+- 8% payout per month, up to 96% APY
+- 3, 6, or 12 month stake options.
   - 2,592,000, 5,184,000, and 10,368,000 blocks, respectively
-- Amount of 25k, 50k, 100k, or 200k BTS
+- Amounts of 25,000 BTS, 50,000 BTS, 100,000 BTS, 200,000 BTS available for stake. 
 - Withdrawal:
   - if past staking period, no fee deducted, automatic return of the base staked
   - Early withdrawals - send 1 BTS with the {"type":"stop"} memo, you will have 15% deducted from base as penalty for braking agreement.
