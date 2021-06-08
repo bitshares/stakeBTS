@@ -2,12 +2,12 @@
 
 ## Install instructions
 
-Install SQLite3:
+**Install SQLite3:**
 ```shell
 apt install -y sqlite3
 ```
 
-Create investment.db from db_setup.txt file:
+**Create investment.db from db_setup.txt file:**
 
 ```sqlite3 investment.db```
 
@@ -15,19 +15,19 @@ Create investment.db from db_setup.txt file:
 
 ```.quit```
 
-Create and activate environment:
+**Create and activate environment:**
 ```shell
 python3 -m venv env
 source env/bin/activate
 ```
 
-Install requirements into environment:
+**Install requirements into environment:**
 ```shell
 pip3 install -r requirements.txt
 ```
 
-NOTICE: UPTICK is a must to operate bot properly. Account that you wish to use for the bot must be imported with all 3 private keys (Owner, Active and Memo) into the uptick. On BOT start 
-you will be asked to enter WALLET password from the uptick.
+**NOTICE: UPTICK is a must to operate bot properly. Account that you wish to use for the bot must be imported with all 3 private keys (Owner, Active and Memo) into the uptick. On BOT start 
+you will be asked to enter WALLET password from the uptick.**
 
 ---
 
