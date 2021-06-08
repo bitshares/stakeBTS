@@ -22,18 +22,18 @@ from bitshares.memo import Memo
 from bitshares.instance import set_shared_bitshares_instance
 
 # USER INPUTS
-ACCOUNT_WATCHING = "iamredbar2"
-NODE = 'wss://testnet.dex.trading/'
-STAKING_ASSET = 'TEST'  # 'BTS'
-# MAXIMUM_ACCOUNT_BALANCE = 20000
-# LOW_INVEST_AMOUNT = 25000
-# MID_INVEST_AMOUNT = 50000
-# HIGH_INVEST_AMOUNT = 100000
-# TOP_INVEST_AMOUNT = 200000
-LOW_INVEST_AMOUNT = 25
-MID_INVEST_AMOUNT = 50
-HIGH_INVEST_AMOUNT = 100
-TOP_INVEST_AMOUNT = 200
+ACCOUNT_WATCHING = "bitsharesmanagement.group"
+NODE = 'wss://api.iamredbar.com/ws'
+STAKING_ASSET = 'BTS'  # 'BTS'
+MAXIMUM_ACCOUNT_BALANCE = 20000000
+LOW_INVEST_AMOUNT = 25000
+MID_INVEST_AMOUNT = 50000
+HIGH_INVEST_AMOUNT = 100000
+TOP_INVEST_AMOUNT = 200000
+# LOW_INVEST_AMOUNT = 25
+# MID_INVEST_AMOUNT = 50
+# HIGH_INVEST_AMOUNT = 100
+# TOP_INVEST_AMOUNT = 200
 PAYOUT = 0.08
 CANCEL_AMOUNT = 1
 
@@ -49,7 +49,7 @@ def add_jobs(password):
     """
     Function to add jobs to apscheduler. These are payout jobs.
     """
-    scheduler.add_job(payout_stake, trigger='cron', args=[password], minute='*/2')
+    scheduler.add_job(payout_stake, trigger='cron', args=[password], day='30', hour='0', minute='1')
 
 
 def payout_database_entry(valid_stakes):
