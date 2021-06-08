@@ -9,9 +9,11 @@ apt install -y sqlite3
 
 Create investment.db from db_setup.txt file:
 
-```sqlite3 investment.db
-Copy/paste content of db_setup.txt
-.quit```
+```sqlite3 investment.db```
+
+(Copy/paste content of db_setup.txt)
+
+```.quit```
 
 Create and activate environment:
 ```shell
