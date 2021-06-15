@@ -37,7 +37,8 @@ you will be asked to enter WALLET password from the uptick.**
 - 8% payout per month, up to 96% APY
 - 3, 6, or 12 month stake options.
   - 2,592,000, 5,184,000, and 10,368,000 blocks, respectively
-- Amounts of 25,000 BTS, 50,000 BTS, 100,000 BTS, 200,000 BTS available for stake. 
+- Basic Stake Amounts of 25,000 BTS, 50,000 BTS, 100,000 BTS, 200,000 BTS available for stake. 
+- High Stake Amounts 500,000 BTS, 750,000 BTS, 1,000,000 BTS, 2,500,000 BTS, 5,000,000 BTS, 10,000,000 BTS added and available for stake. 
 - Withdrawal:
   - if past staking period, no fee deducted, automatic return of the base staked
   - Early withdrawals - send 1 BTS with the {"type":"stop"} memo, you will have 15% deducted from base as penalty for braking agreement.
