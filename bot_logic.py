@@ -309,8 +309,10 @@ def check_block(memo, bot, investment_db, block):
                     else:
                         print('Wrong vesting period sent')
                     bot['timestamp'] = time.time()
-                    if bot['amount'] == LOW_INVEST_AMOUNT or bot['amount'] == MID_INVEST_AMOUNT \
-                            or bot['amount'] == HIGH_INVEST_AMOUNT or bot['amount'] == TOP_INVEST_AMOUNT:
+                    if bot['amount'] == LOW_INVEST_AMOUNT or bot['amount'] == LOW1_INVEST_AMOUNT or bot['amount'] == LOW2_INVEST_AMOUNT \
+                            or bot['amount'] == LOW3_INVEST_AMOUNT or bot['amount'] == LOW4_INVEST_AMOUNT or bot['amount'] == MID_INVEST_AMOUNT \
+                                or bot['amount'] == MID1_INVEST_AMOUNT or bot['amount'] == MID2_INVEST_AMOUNT or bot['amount'] == HIGH_INVEST_AMOUNT \
+                                    or bot['amount'] == HIGH1_INVEST_AMOUNT:
                         stake_organizer(bot, investment_db)
                     else:
                         print('Wrong amount sent. Everything else was good.')
