@@ -16,6 +16,7 @@ from utilities import it, sql_db
 # GLOBAL CONSTANTS
 PATH = os.path.dirname(os.path.abspath(__file__)) + "/database"
 
+
 def main():
     """
     delete any existing db and initialize new SQL db
@@ -55,10 +56,12 @@ def main():
             processed INTEGER,
             status TEXT,
             block_start INTEGER,
+            trx_idx INTEGER,
+            ops_idx INTEGER,
             block_processed INTEGER,
             number INTEGER,
             UNIQUE (
-            client, type, number, block_start
+            client, type, number, block_start, trx_idx, ops_idx
             ) ON CONFLICT IGNORE
         );
         """
@@ -98,7 +101,6 @@ def main():
         """
         for col in sql_db(query):
             print(col)
-
 
 
 if __name__ == "__main__":

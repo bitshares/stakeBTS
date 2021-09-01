@@ -7,19 +7,22 @@ BitShares Management Group Co. Ltd.
 # pylint: disable=broad-except
 
 # STANDARD PYTHON MODULES
+import math
 import time
 from json import dumps as json_dumps
 
 # PYBITSHARES MODULES
 from bitshares.account import Account
 from bitshares.bitshares import BitShares
+from bitshares.dex import Dex
 from bitshares.instance import set_shared_bitshares_instance
 from bitshares.memo import Memo
 
 # BITTREX MODULES
 from bittrex_api import Bittrex
+
 # STAKE BTS MODULES
-from config import BROKER, DEV, NODE
+from config import BROKER, DEV, MAKE_PAYMENTS, NODE
 from utilities import exception_handler, it, line_info
 
 NINES = 999999999
@@ -59,16 +62,18 @@ def get_block_num_current():
 def post_withdrawal_bittrex(amount, client, api, keys):
     """
     send funds using the bittrex api
+    bittrex sends the amount requested less the tx fee, so tx fee is added
     :param int(amount): quantity to be withdrawn
     :param str(client): bitshares username to send to
     :param dict(keys): api keys and secrets for bittrex accounts
     :param int(api): 1, 2, or 3; corporate account to send from
     :return str(msg): withdrawal response from bittrex
     """
-    amount = int(amount)
+    fee = get_txfee_bittrex()
+    amount = float(amount) + fee
     msg = f"POST WITHDRAWAL BITTREX {amount} {client} {api}, response: "
     print(it("yellow", msg))
-    if not DEV:
+    if MAKE_PAYMENTS and not DEV:
         try:
             if amount <= 0:
                 raise ValueError(f"Invalid Withdrawal Amount {amount}")
@@ -106,7 +111,7 @@ def post_withdrawal_pybitshares(amount, client, memo, keys):
     amount = int(amount)
     msg = f"POST WITHDRAWAL PYBITSHARES {amount} {client} {memo}, response: "
     print(it("yellow", msg))
-    if not DEV:
+    if MAKE_PAYMENTS and not DEV:
         try:
             if amount <= 0:
                 raise ValueError(f"Invalid Withdrawal Amount {amount}")
@@ -128,17 +133,58 @@ def post_withdrawal_pybitshares(amount, client, memo, keys):
     return msg
 
 
+# RPC TRANSACTION FEE
+def get_txfee_bittrex():
+    """
+    get transaction fee to send BTS from bittrex api
+    :return float():
+    """
+    fee = float(5)  # default value as of Sept 1, 2021
+    try:
+        bittrex_api = Bittrex()
+        params = {"currencySymbol": "BTS"}
+        ret = bittrex_api.get_currencies(**params)
+        fee = float(ret["txFee"])
+    except Exception as error:
+        print(exception_handler(error), line_info())
+        print(it("red", f"returning default bittrex withdrawal fee of {fee}"))
+    return fee
+
+
+def get_txfee_pybitshares():
+    """
+    get transaction fee to send BTS from pybitshares wallet
+    :return float():
+    """
+    fee = float(1.35129)  # default value including 1kb memo as of Sept 1, 2021
+    try:
+        bitshares, _ = pybitshares_reconnect()
+        dex = Dex(blockchain_instance=bitshares)
+        ret = dex.returnFees()
+        fee = (
+            ret["transfer"]["fee"] * 10 ** 5
+            + ret["transfer"]["price_per_kbyte"] * 10 ** 5
+        ) / 10 ** 5
+    except Exception as error:
+        print(exception_handler(error), line_info())
+        print(it("red", f"returning default pybitshares withdrawal fee of {fee}"))
+    return fee
+
+
 # RPC GET BALANCES
 def get_balance_bittrex(keys):
     """
     get bittrex BTS balances for all three corporate accounts
+    NOTE: each balance is returned less withdrawal fee
+    NOTE: each balance is returned rounded down as int() each api
+    if api call fails, 0 balance is returned
     :param keys: dict containing api keys and secrets for 3 accounts
-    :return dict(balances):format {1: 0, 2: 0, 3: 0} with int() BTS balance for each api
+    :return dict(balances):format {1: 0, 2: 0, 3: 0}
     """
+    fee = int(math.ceil(get_txfee_bittrex()))
     balances = {1: NINES, 2: NINES, 3: NINES}
     if not DEV:
         for api in range(1, 4):
-            balance = 0
             try:
                 bittrex_api = Bittrex(
                     api_key=keys[f"api_{api}_key"], api_secret=keys[f"api_{api}_secret"]
@@ -153,9 +199,11 @@ def get_balance_bittrex(keys):
                         [i for i in ret if i["currencySymbol"] == "BTS"][0]["available"]
                     )
                 )
+                balance -= fee
+                balances[api] = int(max(0, balance))
             except Exception as error:
                 print(exception_handler(error), line_info())
-            balances[api] = balance
+                balances[api] = 0
     print("bittrex balances:", balances)
     return balances
 
@@ -163,8 +211,11 @@ def get_balance_bittrex(keys):
 def get_balance_pybitshares():
     """
     get the broker's BTS balance
+    NOTE: balance is returned less withdrawal fee
+    NOTE: balance is returned rounded down as int()
     :return int(): BTS balance
     """
+    fee = int(math.ceil(get_txfee_pybitshares()))
     try:
         if DEV:
             balance = NINES
@@ -172,9 +223,10 @@ def get_balance_pybitshares():
             _, _ = pybitshares_reconnect()
             account = Account(BROKER)
             balance = int(account.balance("BTS")["amount"])
+            balance -= fee
     except Exception as error:
-        balance = 0
         print(exception_handler(error), line_info())
+        balance = 0
     print("pybitshares balance:", balance)
     return balance
 

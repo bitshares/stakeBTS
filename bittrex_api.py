@@ -43,19 +43,20 @@ class Bittrex:
     Client for Bittrex for V3 API
     """
 
-    def __init__(self, api_key, api_secret):
+    def __init__(self, api_key="", api_secret=""):
         self.response = ""
         self.api_key = api_key
         self.api_secret = api_secret
 
     def _request(self, method, endpoint, **kwargs):
+        time.sleep(1)  # 60 API calls per minute
         uri = API_URL + endpoint
         with _session() as session:
             self.response = getattr(session, method)(uri, **kwargs)
         return self.response.json()
 
     def _authenticated_request(self, method, endpoint, **kwargs):
-
+        time.sleep(1)  # 60 API calls per minute
         request_data = {}
         payload = ""
         if len(kwargs) > 0:
@@ -235,6 +236,42 @@ class Bittrex:
         ]
         """
         return self._authenticated_request("get", "addresses")
+
+    def get_currencies(self, **params):
+        """
+        List of currencies and related metadata
+        :param str(currencySymbol): the currency symbol, eg. BTC
+        :return list(): list of dicts for each supported currency
+        [
+          {
+            "symbol": "string",
+            "name": "string",
+            "coinType": "string",
+            "status": "string",
+            "minConfirmations": "integer (int32)",
+            "notice": "string",
+            "txFee": "number (double)",
+            "logoUrl": "string",
+            "prohibitedIn": [
+              "string"
+            ],
+            "baseAddress": "string",
+            "associatedTermsOfService": [
+              "string"
+            ],
+            "tags": [
+              "string"
+            ]
+          }, ...
+        ]
+        :return dict(): when currencySymbol is specified
+        """
+        print(params)
+
+        endpoint = "currencies"
+        if "currencySymbol" in params:
+            endpoint += "/" + params["currencySymbol"]
+        return self._request("get", endpoint)
 
 
 def unit_test():

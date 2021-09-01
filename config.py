@@ -27,11 +27,18 @@ INVEST_AMOUNTS = [
     5000000,
     10000000,
 ]
-# REPLAY #
+# REPLAY MODE ##########################################################################
 # True : start from block number last checked in database
 # False : start from current block number
 # int() : start from user specified block number
-REPLAY = False
-# UNIT TESTING MODE
-DEV = False
-ADMIN_REPLAY = False
+
+# REPLAY = False
+REPLAY = 59106020 # before first legacy stake 59106023
+# REPLAY = 60692861 # after last legacy stake 60692860
+
+
+# DEVELOPER MODES ######################################################################
+DEV = True  # Ignore withdrawals, 99999999 balances, fake credentials when True
+DEV_AUTH = False  # Use keys found in dev auth file? True=YES
+ADMIN_REPLAY = False  # Perform admin transfers again during replay? True=YES
+MAKE_PAYMENTS = False  # When False disables listener_sql and all withdrawals

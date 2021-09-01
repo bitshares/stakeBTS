@@ -2,7 +2,7 @@
 
 `APP VERSION`
 
-**v2.1**
+**v2.2**
 
 `PYTHON VERSION`
 
@@ -35,14 +35,7 @@ for bitsharesmanagement.group to stakeBTS clients
 sudo apt install -y sqlite3
 ```
 
-- create database folder
-- Create stake_bitshares.db
-- set up the tables with db_setup.py file:
-- check the schema and that the stake table is empty
 
-```
-python3.8 db_setup.py
-```
 
 **Create and activate environment:**
 
@@ -58,17 +51,96 @@ source env/bin/activate
 pip3 install -r requirements.txt
 ```
 
-**import old client data**
+next we'll replay the blocks containing legacy contracts
+
+in config.py set these user specified CONSTANTS:
+
+```
+DEV = True
+DEV_AUTH = False
+ADMIN_REPLAY = False
+MAKE_PAYMENTS = False
+REPLAY = 59106020
+```
+
+Then run:
+
+`python3.8 db_setup.py`
+
+input "y" then press Enter
+
+It will:
+
+- delete any existing db
+- create database folder
+- Create stake_bitshares.db
+- set up the tables
+- check the schema and that the stake table is empty
+
+Then run:
+
+`python3.8 stake_bitshares.py`
+
+It will:
+
+- replay the legacy contracts and enter them into the database
+
+At block number 60693000 you can stop the replay
+
+`ctrl + \`
+
+At this point you should view the contents of the stakes table:
+
+`sqlite3 database/stake_bitshares.py`
+`SELECT * FROM stakes;`
+`.quit`
+
+It should display 25 legacy contracts and all potential payements due
+
+Then run:
 
 ```
 python3.8 import_data.py
 ```
+
+It will:
+
+- mark all manual payments to date paid
+
+At this point you should view the contents of the stakes table:
+
+`sqlite3 database/stake_bitshares.py`
+`SELECT * FROM stakes;`
+`.quit`
+
+It should display 25 legacy contracts
+They should now be updated with all manual payments marked as paid
+
+### NOTE: CAREFULLY REVIEW THIS DATA FOR ACCURACY!!!
+
+finally we'll run the app from the current block:
+
+in config.py set these user specified CONSTANTS:
+
+```
+DEV = False
+DEV_AUTH = False
+ADMIN_REPLAY = False
+MAKE_PAYMENTS = True
+REPLAY = False
+```
+
+be sure you have entered `BITTREX_N` deposit memos
+be sure you have entered `NODE`
 
 **Run app**
 
 ```
 python3.8 stake_bitshares.py
 ```
+
+The bot will now automate payments
+
 
 `
 CHANGELIST v2.0
@@ -90,6 +162,13 @@ CHANGELIST v2.0
 - each individual payout is also a thread
 - apscheduler has been replaced by a custom database items due listener
 - approved admin must be lifetime members of BitShares to run the bot
+
+`
+CHANGELIST v2.2
+`
+- post withdrawal and get balances now account for fees
+- new trx_idx and ops_idx allow for multiple stakes from one user in same block
+- new initiation procedure gathers accurate block number for legacy contracts
 
 `NOTES`
 - Account that manager will use for the bot must be imported with all 3 private keys:
@@ -120,7 +199,7 @@ CHANGELIST v2.0
 the bot will also accept non json formatted client memos eg; `six_months` would be sufficient
 
 `FEES`
- 
+
 The bot charges a fee of 50 BTS and returns your funds if:
 - sending invalid stake amount
 - sending invalid memo
@@ -139,7 +218,7 @@ CREATE TABLE block (
 - as events unfold, their "status", "block", and "processed" time changes
 ```
     CREATE TABLE stakes (
-        user TEXT               # bitshares user name for client
+        client TEXT             # bitshares user name for client
         token TEXT              # bitshares asset name
         amount INTEGER          # amount of asset rounded to nearest integer
         type TEXT               # contract, principal, penalty, or interest
@@ -148,16 +227,26 @@ CREATE TABLE block (
         processed INTEGER       # munix time at which payment was actually processed
         status TEXT             # pending, paid, aborted, or premature
         block_start INTEGER     # bitshares block number upon stake creation
+        trx_idx INTEGER         # unique transaction index
+        ops_idx INTEGER         # unique operation index
         block_processed INTEGER # bitshares block number upon payment
         number INTEGER          # counting number for interest payments, eg 1,2,3,4...
+        UNIQUE (                # unique prevents duplicate stakes in the db
+            client, type, number, block_start, trx_idx, ops_idx
+            ) ON CONFLICT IGNORE
     );
+```
+- receipts will hold transaction details for all incoming and outgoing tx's
+```
     CREATE TABLE receipts (
         nonce INTEGER           # munix start time of contract (same as 'stakes/start')
         now INTEGER             # munix moment when event occurred
         msg TEXT                # receipt details for audit trail
     );
-
-INSERT INTO block (block) VALUES (59120000); # the initial starting block
+```
+- add a dummy block number into the block_num database
+```
+INSERT INTO block_num (block_num) VALUES (59120000); # the initial starting block
 ```
 
 `preexisting_contracts.py and import_data.py`
@@ -167,7 +256,7 @@ preexisting_contracts.py houses a single global constant of block text in format
 username milliseconds_unix amount contract_length months_paid
 ```
 can be tab or space delimited, eg:
-``` 
+```
     STAKES = """
         user1233 1623177720000 25000 12 2
         user9043 1623176546500 50000  3 2
@@ -258,7 +347,7 @@ Once the main bot is running
 it won't know the difference between old contracts and new.
 it just sees "pending" vs "paid/aborted" line items
 ```
-                                                
+
 `RESET DATABASE`
 
 - `python3.8 db_setup.py`
@@ -343,15 +432,15 @@ Conduct an security review commensurate with your investment.
 `SPONSOR`
 
 This software is sponsored and managed by BitShares Management Group Limited
-                                                
+
 - www.bitshares.org
 
 `DEVELOPERS`
 
 v1.0 initial prototype
-                                                
+
 - iamredbar: iamredbar@protonmail.com
 
 v2.0 refactor, refinement, added features
-                                                
+
 - litepresence: finitestate@tutamail.com

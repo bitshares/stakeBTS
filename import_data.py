@@ -12,11 +12,11 @@ from sqlite3 import connect as sql
 from config import DB
 from preexisting_contracts import STAKES
 from rpc import pybitshares_reconnect
-from stake_bitshares import stake_start
 
 # USER DEFINED CONSTANTS
 JUNE30 = 1625011200000
 JULY31 = 1627689600000
+AUG31 = 1630411200000
 BLOCK0 = 1445838432000  # assuming perfect blocktime, calculated Aug 7, 2021
 
 
@@ -92,6 +92,19 @@ def mark_prepaid_stakes(stake_matrix, con):
         # extract the user name and number of payments already executed
         client = str(stake[0])
         prepaid = int(stake[4])
+        # handle two last minute payments on august 31st for sune-3355 and bts-stakeacc
+        if prepaid == 0:
+            block = convert_munix_to_block(AUG31)
+            query = (
+                "UPDATE stakes "
+                + "SET status='paid', block_processed=?, processed=? "
+                + "WHERE client=? AND type='interest' AND status='pending' AND number='1'"
+            )
+            values = (block, AUG31, client)
+            print(query)
+            print(values)
+            print([type(i) for i in values])
+            cur.execute(query, values)
         # handle cases where one payment has been sent already
         if prepaid == 1:
             block = convert_munix_to_block(JULY31)
@@ -129,6 +142,7 @@ def mark_prepaid_stakes(stake_matrix, con):
             print([type(i) for i in values])
             values = (block, JULY31, client)
             cur.execute(query, values)
+
     # commit edit to database
     con.commit()
 
@@ -143,16 +157,6 @@ def initialize_database_with_existing_contracts():
     stake_matrix = convert_stakes_to_matrix(STAKES)
     # add block number to each row in matrix
     stake_matrix = add_block_num(stake_matrix)
-    # add stakes to database
-    for stake in stake_matrix:
-        params = {
-            "client": str(stake[0]),
-            "nonce": int(stake[1]),
-            "amount": int(stake[2]),
-            "months": int(stake[3]),
-            "block": int(convert_munix_to_block(int(stake[1]))),
-        }
-        stake_start(params, con)
     # mark payouts already made as paid
     mark_prepaid_stakes(stake_matrix, con)
     # display results and close db connection
@@ -169,4 +173,6 @@ def initialize_database_with_existing_contracts():
 
 
 if __name__ == "__main__":
+
+    input("WARN: this script is for single use on Sept 1, 2021 press Enter to continue")
     initialize_database_with_existing_contracts()

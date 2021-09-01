@@ -20,8 +20,9 @@ from bitshares.block import Block
 
 # STAKE BTS MODULES
 from config import (ADMIN_REPLAY, BITTREX_1, BITTREX_2, BITTREX_3,
-                    BITTREX_ACCT, BROKER, DEV, EMAIL, INTEREST, INVEST_AMOUNTS,
-                    MANAGERS, PENALTY, REPLAY)
+                    BITTREX_ACCT, BROKER, DEV, DEV_AUTH, EMAIL, INTEREST,
+                    INVEST_AMOUNTS, MAKE_PAYMENTS, MANAGERS, PENALTY, REPLAY)
+from dev_auth import KEYS
 from rpc import (authenticate, get_balance_bittrex, get_balance_pybitshares,
                  get_block_num_current, post_withdrawal_bittrex,
                  post_withdrawal_pybitshares, pybitshares_reconnect)
@@ -105,13 +106,17 @@ def stake_start(params, keys=None):
     :return None:
     """
     # localize parameters
-    nonce, block_num, client, amount, months = map(
-        params.get, ("nonce", "block_num", "client", "amount", "months")
+    nonce, block_num, trx_idx, ops_idx, client, amount, months = map(
+        params.get,
+        ("nonce", "block_num", "trx_idx", "ops_idx", "client", "amount", "months"),
     )
     # keys are None when using import_data.py to add existing contracts
     if keys is not None:
         # send confirmation receipt to client with memo using pybitshares
-        memo = f"{months} month stake contract for {amount} BTS received at {nonce}"
+        memo = (
+            f"{months} month stake contract for {amount} BTS entered into database "
+            f"at epoch {nonce} for block {block_num} trx {trx_idx} op {ops_idx}"
+        )
         memo += post_withdrawal_pybitshares(1, client, memo, keys)
         memo += json_dumps(params)
         update_receipt_database(nonce, memo)
@@ -121,8 +126,8 @@ def stake_start(params, keys=None):
     query = (
         "INSERT INTO stakes "
         + "(client, token, amount, type, start, due, processed, status, "
-        + "block_start, block_processed, number) "
-        + "VALUES (?,?,?,?,?,?,?,?,?,?,?)"
+        + "block_start, trx_idx, ops_idx, block_processed, number) "
+        + "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)"
     )
     values = (
         client,
@@ -134,6 +139,8 @@ def stake_start(params, keys=None):
         nonce,  # processed now
         "paid",
         block_num,
+        trx_idx,
+        ops_idx,
         NINES,
         0,
     )
@@ -143,8 +150,8 @@ def stake_start(params, keys=None):
     query = (
         "INSERT INTO stakes "
         + "(client, token, amount, type, start, due, processed, status, "
-        + "block_start, block_processed, number) "
-        + "VALUES (?,?,?,?,?,?,?,?,?,?,?)"
+        + "block_start, trx_idx, ops_idx, block_processed, number) "
+        + "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)"
     )
     values = (
         client,
@@ -156,6 +163,8 @@ def stake_start(params, keys=None):
         0,
         "pending",
         block_num,
+        trx_idx,
+        ops_idx,
         NINES,
         0,
     )
@@ -165,8 +174,8 @@ def stake_start(params, keys=None):
     query = (
         "INSERT INTO stakes "
         + "(client, token, amount, type, start, due, processed, status, "
-        + "block_start, block_processed, number) "
-        + "VALUES (?,?,?,?,?,?,?,?,?,?,?)"
+        + "block_start, trx_idx, ops_idx, block_processed, number) "
+        + "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)"
     )
     values = (
         client,
@@ -178,6 +187,8 @@ def stake_start(params, keys=None):
         0,
         "pending",
         block_num,
+        trx_idx,
+        ops_idx,
         NINES,
         0,
     )
@@ -188,8 +199,8 @@ def stake_start(params, keys=None):
         query = (
             "INSERT INTO stakes "
             + "(client, token, amount, type, start, due, processed, status, "
-            + "block_start, block_processed, number) "
-            + "VALUES (?,?,?,?,?,?,?,?,?,?,?)"
+            + "block_start, trx_idx, ops_idx, block_processed, number) "
+            + "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)"
         )
         values = (
             client,
@@ -201,6 +212,8 @@ def stake_start(params, keys=None):
             0,
             "pending",
             block_num,
+            trx_idx,
+            ops_idx,
             NINES,
             month,
         )
@@ -439,7 +452,16 @@ def decrypt_memo(ciphertext, keys):
         try:
             msg = json_loads(decrypted_memo)
         except Exception:
-            msg = {"type": decrypted_memo}
+            # last legacy contract was in block 60692860
+            # legacy contracts were invalid and returned to client if not in json format
+            if get_block_num_database() > 60693000:
+                msg = {
+                    "type": decrypted_memo.replace('"', "")  # allow d-quotes
+                    .replace("'", "")  # allow s-quotes
+                    .replace(" ", "")  # allow errant space in memo
+                }
+            else:
+                msg = {"type": "invalid"}
         print(msg)
         if "type" in msg:
             if msg["type"] in CLIENT_MEMOS + ADMIN_MEMOS:
@@ -457,8 +479,8 @@ def check_block(block_num, block, keys):
     :param dict(keys): bittrex api keys and pybitshares wallet password
     :return None:
     """
-    for trx in block["transactions"]:
-        for ops in trx["operations"]:
+    for trx_idx, trx in enumerate(block["transactions"]):
+        for ops_idx, ops in enumerate(trx["operations"]):
             # if it is a BTS transfer to the broker managed account
             if (
                 ops[0] == 0  # withdrawal
@@ -486,6 +508,8 @@ def check_block(block_num, block, keys):
                     "amount": amount,
                     "memo": memo,
                     "block_num": block_num,
+                    "trx_idx": trx_idx,
+                    "ops_idx": ops_idx,
                     "ops": ops,
                     "nonce": nonce,
                 }
@@ -519,19 +543,22 @@ def payment_parent(payments_due, keys):
     """
     threads = {}
     for payment in payments_due:
-        time.sleep(0.1)  # reduce likelihood of race condition
-        params = {
-            "amount": payment[0],
-            "client": payment[1],
-            "nonce": payment[2],
-            "number": payment[3],
-            "type": payment[4],
-        }
-        # each individual outbound payment_child()
-        # is a child of listener_sql(),
-        # we'll use deepcopy so that the thread's locals are static to the payment
-        threads[payment] = Thread(target=payment_child, args=(deepcopy(params), keys,),)
-        threads[payment].start()
+        if MAKE_PAYMENTS:
+            time.sleep(0.1)  # reduce likelihood of race condition
+            params = {
+                "amount": payment[0],
+                "client": payment[1],
+                "nonce": payment[2],
+                "number": payment[3],
+                "type": payment[4],
+            }
+            # each individual outbound payment_child()
+            # is a child of listener_sql(),
+            # we'll use deepcopy so that the thread's locals are static to the payment
+            threads[payment] = Thread(
+                target=payment_child, args=(deepcopy(params), keys,),
+            )
+            threads[payment].start()
 
 
 def payment_child(params, keys):
@@ -562,6 +589,7 @@ def payment_child(params, keys):
     )
     print(it("green", str(("make payout process", amount, client, nonce, number))))
     # calculate need vs check how much funds we have on hand in the brokerage account
+    # always keep 100 BTS on hand for fees, sending receipt memos, etc.
     params.update(
         {"need": amount + 100, "pybitshares_balance": get_balance_pybitshares()}
     )
@@ -632,7 +660,7 @@ def payment_cover(params, keys):
                     if deficit <= 0:
                         break  # eg. if 1st api has funds stop here
         # if we had enough funds,
-        # wait up to 6 hours for funds to arrive
+        # wait for funds to arrive
         # breaks on timeout or on receipt of funds
         if deficit <= 0:
             covered = True
@@ -679,12 +707,14 @@ def listener_bitshares(keys):
             Block.clear_cache()
             check_block(block_num, block, keys)
             set_block_num_database(block_num)
-        time.sleep(30)
+        # don't sleep during replay... else batch when live
+        if (block_new - block_last) < 100:
+            time.sleep(30)
 
 
 def listener_sql(keys):
     """
-    make all interest and principal payments due and marke them paid in database
+    make all interest and principal payments due and mark them paid in database
     mark penalties due as aborted in database
     set processed time and block to current for all
     send individual payments using threading
@@ -783,6 +813,12 @@ def welcome(keys):
             set_block_num_database(block_num_current)
     elif isinstance(REPLAY, int):
         print(f"start - REPLAY - from user specified block number {REPLAY}")
+        # 59106023 tony-peacock created first legacy stake of 25000
+        # 60692860 sune-3355 created last legacy stake of 50000
+        if REPLAY < 59106000:
+            raise ValueError(it("red", "WARN first stake was 59106023"))
+        if REPLAY < 60693000:
+            print(it("red", "WARN replaying legacy stakes, inspect database when done"))
         set_block_num_database(REPLAY - 1)
     print(
         "\n",
@@ -799,10 +835,8 @@ def login():
     user input login credentials for pybitshares and bittrex
     :return dict(keys): authenticated bittrex api keys and pybitshares wallet password
     """
-    # uncomment this code block and create a dev_auth.py to bypass login during dev
-    # from dev_auth import KEYS
-    # return KEYS
-
+    if DEV_AUTH:
+        return KEYS
     keys = {}
     authenticated = False
     if DEV:
@@ -845,12 +879,13 @@ def main():
     # block operations listener_bitshares() for incoming client requests
     thread_1 = Thread(target=listener_bitshares, args=(keys,))
     thread_1.start()
-    # listener_sql() check sql db for payments due
-    thread_2 = Thread(target=listener_sql, args=(keys,))
-    thread_2.start()
-    # listener_balances() periodically updates receipts table with account balances
-    thread_3 = Thread(target=listener_balances, args=(keys,))
-    thread_3.start()
+    if MAKE_PAYMENTS:
+        # listener_sql() check sql db for payments due
+        thread_2 = Thread(target=listener_sql, args=(keys,))
+        thread_2.start()
+        # listener_balances() periodically updates receipts table with account balances
+        thread_3 = Thread(target=listener_balances, args=(keys,))
+        thread_3.start()
 
 
 if __name__ == "__main__":
