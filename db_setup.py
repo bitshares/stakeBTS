@@ -58,7 +58,7 @@ def main():
             block_processed INTEGER,
             number INTEGER,
             UNIQUE (
-            client, type, number, block_start, start
+            client, type, number, block_start
             ) ON CONFLICT IGNORE
         );
         """
