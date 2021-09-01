@@ -432,17 +432,25 @@ Conduct an security review commensurate with your investment.
 
 This software is sponsored and managed by BitShares Management Group Limited
 
-- www.bitshares.org
-
+- https://bitsharesmanagement.group
+- https://bitsharestalk.org
+- https://bitshares.org
+                                                
+`TRADEMARK`
+                                                
+2014-2021. BitShares, and any associated logos are trademarks, 
+                                                
+service marks, and/or registered trademarks of Move Institute, Slovenia.
+                                                
 `DEVELOPERS`
 
 v1.0 initial prototype
 
-- iamredbar: iamredbar@protonmail.com
+- iamredbar: iamredbar@protonmail.com https://github.com/iamredbar
 
 v2.0 refactor, refinement, added features
 
-- litepresence: finitestate@tutamail.com
+- litepresence: finitestate@tutamail.com https://github.com/litepresence
                                                 
 `COMMENTS, COMPLAINTS, other ISSUES`
 
