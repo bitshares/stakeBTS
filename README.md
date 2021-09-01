@@ -171,8 +171,7 @@ CHANGELIST v2.2
 - new initiation procedure gathers accurate block number for legacy contracts
 
 `NOTES`
-- Account that manager will use for the bot must be imported with all 3 private keys:
-- (Owner, Active and Memo) into uptick.
+- Requires creation of uptick wallet w/ `BROKER`'s `Acitve` and `Memo` keys
 - On BOT start you will be asked to enter your uptick WALLET password
 - Bittrex api is used for outbound payments.
 - You must also have Bittrex API key/secret.
