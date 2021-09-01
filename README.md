@@ -443,3 +443,14 @@ v1.0 initial prototype
 v2.0 refactor, refinement, added features
 
 - litepresence: finitestate@tutamail.com
+                                                
+`COMMENTS, COMPLAINTS, other ISSUES`
+
+If you are a current or prospective `bitshares management group` 
+                                                
+client with any concerns or would like to confidentially report 
+                                                
+security vulnerabilities, please contact:
+                  
+complaints@stakebts.bitsharesmanagement.group                                                
+                                                
