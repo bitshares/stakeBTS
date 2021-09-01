@@ -27,7 +27,7 @@
 Recurring interest and principal payment automation
 for bitsharesmanagement.group to stakeBTS clients
 
-`INTALLATION`
+`INSTALLATION`
 
 **Install SQLite3:**
 
