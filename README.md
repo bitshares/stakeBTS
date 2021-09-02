@@ -69,8 +69,10 @@ It will:
 
 in dev_auth.py input your credentials to these user specified CONSTANTS:
 
+```
 BROKER = ???
 PASSWORD = ???
+```
 
 These credentials are required to decode the memos,
 
@@ -100,9 +102,11 @@ At block number 60693000 you can stop the replay
 
 At this point you should view the contents of the stakes table:
 
-`sqlite3 database/stake_bitshares.py`
-`SELECT * FROM stakes;`
-`.quit`
+```
+sqlite3 database/stake_bitshares.py
+SELECT * FROM stakes;
+.quit
+```
 
 It should display 25 legacy contracts and all potential payements due
 
@@ -142,10 +146,11 @@ It will:
 
 At this point you should view the contents of the stakes table:
 
-`sqlite3 database/stake_bitshares.py`
-`SELECT * FROM stakes;`
-`.quit`
-
+```
+sqlite3 database/stake_bitshares.py
+SELECT * FROM stakes;
+.quit
+```
 It should display 25 legacy contracts + any additional contracts
 
 They should now be updated with all manual payments marked as paid
@@ -165,6 +170,7 @@ ADMIN_REPLAY = False
 MAKE_PAYMENTS = True
 REPLAY = False
 ```
+
 in config.py, also... 
 
 be sure you have entered the 3 `BITTREX_N` deposit memos
@@ -225,15 +231,17 @@ CHANGELIST v2.2
 {"type":"<MEMO OPTIONS>"}
 
 `MEMO OPTIONS`
+ 
 - client memo options
- - three_months
- - six_months
- - twelve_months
- - stop
-- admin memo options (requires LTM account AND client being in MANAGER list)
- - bmg_to_bittrex
- - bittrex_to_bmg
- - loan_to_bmg
+ - `three_months`
+ - `six_months`
+ - `twelve_months`
+ - `stop`
+
+ - admin memo options (requires LTM account AND client being in MANAGER list)
+ - `bmg_to_bittrex`
+ - `bittrex_to_bmg`
+ - `loan_to_bmg`
  
 if need be visit https://jsonlint.com/ to confirm you have created legit json
 
@@ -252,6 +260,7 @@ should all parse, but other errors will be charged a fee...
 `FEES`
 
 The bot charges a fee of 50 BTS and returns your funds if:
+ 
 - sending invalid stake amount
 - sending invalid memo
 - sending admin request without being in MANAGER list
