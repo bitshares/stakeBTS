@@ -35,8 +35,6 @@ for bitsharesmanagement.group to stakeBTS clients
 sudo apt install -y sqlite3
 ```
 
-
-
 **Create and activate environment:**
 
 ```
@@ -51,19 +49,9 @@ source env/bin/activate
 pip3 install -r requirements.txt
 ```
 
-next we'll replay the blocks containing legacy contracts
+**Restart the database**
 
-in config.py set these user specified CONSTANTS:
-
-```
-DEV = True
-DEV_AUTH = False
-ADMIN_REPLAY = False
-MAKE_PAYMENTS = False
-REPLAY = 59106020
-```
-
-Then run:
+Run:
 
 `python3.8 db_setup.py`
 
@@ -76,6 +64,27 @@ It will:
 - Create stake_bitshares.db
 - set up the tables
 - check the schema and that the stake table is empty
+
+**Next we'll replay the blocks containing legacy contracts**
+
+in dev_auth.py input your credentials to these user specified CONSTANTS:
+
+BROKER = ???
+PASSWORD = ???
+
+These credentials are required to decode the memos,
+
+you can leave the other three dev_auth.py credentials blank at this time
+
+in config.py set these user specified CONSTANTS:
+
+```
+DEV = False
+DEV_AUTH = True
+ADMIN_REPLAY = False
+MAKE_PAYMENTS = False
+REPLAY = 59106020
+```
 
 Then run:
 
@@ -97,7 +106,31 @@ At this point you should view the contents of the stakes table:
 
 It should display 25 legacy contracts and all potential payements due
 
+If there are any additional contracts,
+
+in config.py set these user specified CONSTANTS set replay 
+
+to 2 less than the block they occur in:
+
+```
+REPLAY = ???
+```
+
 Then run:
+
+`python3.8 stake_bitshares.py`
+
+It will pick up the contracts and add them to the db.  
+
+You can stop the script a few blocks later.
+
+`ctrl + \`
+
+Repeat this process for any additional contracts you need to import
+
+**Next we need to mark any payments made manually as PAID**
+
+Run:
 
 ```
 python3.8 import_data.py
@@ -113,12 +146,15 @@ At this point you should view the contents of the stakes table:
 `SELECT * FROM stakes;`
 `.quit`
 
-It should display 25 legacy contracts
+It should display 25 legacy contracts + any additional contracts
+
 They should now be updated with all manual payments marked as paid
 
 ### NOTE: CAREFULLY REVIEW THIS DATA FOR ACCURACY!!!
 
 finally we'll run the app from the current block:
+
+in dev_auth.py delete your credentials for security
 
 in config.py set these user specified CONSTANTS:
 
@@ -129,8 +165,10 @@ ADMIN_REPLAY = False
 MAKE_PAYMENTS = True
 REPLAY = False
 ```
+in config.py, also... 
 
-be sure you have entered `BITTREX_N` deposit memos
+be sure you have entered the 3 `BITTREX_N` deposit memos
+
 be sure you have entered `NODE`
 
 **Run app**
@@ -139,7 +177,9 @@ be sure you have entered `NODE`
 python3.8 stake_bitshares.py
 ```
 
-The bot will now automate payments
+You will be prompted for all credentials, pybitshares and bittrex
+
+### The bot will now automate payments
 
 
 `
@@ -186,16 +226,28 @@ CHANGELIST v2.2
 
 `MEMO OPTIONS`
 - client memo options
- - "three_months"
- - "six_months"
- - "twelve_months"
- - "stop"
+ - three_months
+ - six_months
+ - twelve_months
+ - stop
 - admin memo options (requires LTM account AND client being in MANAGER list)
- - "bmg_to_bittrex"
- - "bittrex_to_bmg"
- - "loan_to_bmg"
+ - bmg_to_bittrex
+ - bittrex_to_bmg
+ - loan_to_bmg
+ 
+if need be visit https://jsonlint.com/ to confirm you have created legit json
 
 the bot will also accept non json formatted client memos eg; `six_months` would be sufficient
+ 
+it will also attempt to be kind to some silly errors, eg:
+ 
+- `   six_months `
+- `six_months  `
+- `"six_months"`
+- `'six_months '`
+- `"si x_ mon  ths"`
+
+should all parse, but other errors will be charged a fee...
 
 `FEES`
 
