@@ -112,9 +112,7 @@ It should display 25 legacy contracts and all potential payements due
 
 If there are any additional contracts,
 
-in config.py set these user specified CONSTANTS set replay 
-
-to 2 less than the block they occur in:
+in config.py set replay to 2 less than the block they occur in:
 
 ```
 REPLAY = ???
