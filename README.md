@@ -251,10 +251,10 @@ the bot will also accept non json formatted client memos eg; `six_months` would 
  
 it will also attempt to be kind to some silly errors, eg:
  
-- `   six_months `
-- `six_months  `
+- `'   six_months `
+- `six_months  '`
 - `"six_months"`
-- `'six_months '`
+- `'six_months'`
 - `"si x_ mon  ths"`
 
 should all parse, but other errors will be charged a fee...
