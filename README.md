@@ -173,9 +173,18 @@ REPLAY = False
 
 in config.py, also... 
 
-be sure you have entered the 3 `BITTREX_N` deposit memos
-
 be sure you have entered `NODE`
+
+finally, enter the 3 `BITTREX_N` deposit memos
+
+It is important here that you keep them ordered the same 
+
+as your api keys and secrets for each, eg:
+
+```BITTREX_1 = API_1_KEY = API_1_SECRET```
+
+you'll be prompted via script for keys and secrets shortly
+
 
 **Run app**
 
