@@ -228,17 +228,19 @@ CHANGELIST v2.2
 
 `CLIENT JSON FORMAT`
 
-{"type":"<MEMO OPTIONS>"}
+{"type":"MEMO_OPTIONS"}
 
 `MEMO OPTIONS`
  
-- client memo options
+client memo options
+
  - `three_months`
  - `six_months`
  - `twelve_months`
  - `stop`
 
- - admin memo options (requires LTM account AND client being in MANAGER list)
+admin memo options (requires LTM account AND client being in MANAGER list)
+
  - `bmg_to_bittrex`
  - `bittrex_to_bmg`
  - `loan_to_bmg`
