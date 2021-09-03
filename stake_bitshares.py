@@ -141,7 +141,7 @@ def stake_start(params, keys=None):
         block_num,
         trx_idx,
         ops_idx,
-        block_num,
+        get_block_num_current(),
         0,
     )
     dml = {"query": query, "values": values}
