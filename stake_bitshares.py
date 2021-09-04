@@ -489,9 +489,7 @@ def check_block(block_num, block, keys):
             ):
                 nonce = munix_nonce()
                 client = Account(ops[1]["from"]).name
-                amount = int(
-                    ops[1]["amount"]["amount"] // 10 ** Asset("1.3.0").precision
-                )
+                amount = int(ops[1]["amount"]["amount"]) // 10 ** int(Asset("1.3.0").precision)
                 msg = (
                     f"transfer of {amount} BTS to broker from {client} "
                     + f"in block {block_num}"
