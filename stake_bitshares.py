@@ -256,7 +256,7 @@ def stake_stop(params, keys):
     amounts_due = [int(i[0]) for i in curfetchall_1]
     amount = sum(amounts_due)
     items_due = len(amounts_due)
-    contract_nonces = list(set([i[0] for i in curfetchall_2]))
+    contract_nonces = list(set([int(i[0]) for i in curfetchall_2]))
     start_nonce = min(contract_nonces)
     # batch stop stake queries and process them atomically
     queries = []
