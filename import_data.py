@@ -5,31 +5,23 @@ BitShares Management Group Co. Ltd.
 """
 
 # STANDARD MODULES
-import datetime
 from sqlite3 import connect as sql
+
+# PYBITSHARES MODULES
+from bitshares.block import Block
 
 # STAKEBTS MODULES
 from config import DB
-from preexisting_contracts import STAKES
+from dev_auth import KEYS
+from preexisting_contracts import CONTRACT_BLOCKS, STAKES
 from rpc import pybitshares_reconnect
+from stake_bitshares import check_block
 
 # USER DEFINED CONSTANTS
 JUNE30 = 1625011200000
 JULY31 = 1627689600000
 AUG31 = 1630411200000
 BLOCK0 = 1445838432000  # assuming perfect blocktime, calculated Aug 7, 2021
-
-
-def convert_date_to_munix(date, fstring="%m/%d/%Y %H:%M"):
-    """
-    convert from human readable to millesecond epoch
-    not used by this app because our data is already in millesecond epoch
-    :param str(date): human readable date
-    :param str(fstring): format of readable date
-    :return int(): millesecond unix epoch
-    """
-    date_time_obj = datetime.datetime.strptime(date, fstring)
-    return int(date_time_obj.timestamp() * 1000)
 
 
 def get_dynamic_globals():
@@ -90,7 +82,7 @@ def mark_prepaid_stakes(stake_matrix, con):
     # search through our prepaid stake matrix for payments already made
     for stake in stake_matrix:
         # extract the user name and number of payments already executed
-        client = str(stake[0])
+        nominator = str(stake[0])
         prepaid = int(stake[4])
         # handle two last minute payments on august 31st for sune-3355 and bts-stakeacc
         if prepaid == 0:
@@ -98,9 +90,10 @@ def mark_prepaid_stakes(stake_matrix, con):
             query = (
                 "UPDATE stakes "
                 + "SET status='paid', block_processed=?, processed=? "
-                + "WHERE client=? AND type='interest' AND status='pending' AND number='1'"
+                + "WHERE nominator=? AND type='reward' AND status='pending' "
+                + "AND number='1'"
             )
-            values = (block, AUG31, client)
+            values = (block, AUG31, nominator)
             print(query)
             print(values)
             print([type(i) for i in values])
@@ -111,9 +104,10 @@ def mark_prepaid_stakes(stake_matrix, con):
             query = (
                 "UPDATE stakes "
                 + "SET status='paid', block_processed=?, processed=? "
-                + "WHERE client=? AND type='interest' AND status='pending' AND number='1'"
+                + "WHERE nominator=? AND type='reward' AND status='pending' "
+                + "AND number='1'"
             )
-            values = (block, JULY31, client)
+            values = (block, JULY31, nominator)
             print(query)
             print(values)
             print([type(i) for i in values])
@@ -124,9 +118,10 @@ def mark_prepaid_stakes(stake_matrix, con):
             query = (
                 "UPDATE stakes "
                 + "SET status='paid', block_processed=?, processed=? "
-                + "WHERE client=? AND type='interest' AND status='pending' AND number='1'"
+                + "WHERE nominator=? AND type='reward' AND status='pending' "
+                + "AND number='1'"
             )
-            values = (block, JUNE30, client)
+            values = (block, JUNE30, nominator)
             print(query)
             print(values)
             print([type(i) for i in values])
@@ -135,23 +130,40 @@ def mark_prepaid_stakes(stake_matrix, con):
             query = (
                 "UPDATE stakes "
                 + "SET status='paid', block_processed=?, processed=? "
-                + "WHERE client=? AND type='interest' AND status='pending' AND number='2'"
+                + "WHERE nominator=? AND type='reward' AND status='pending' "
+                + "AND number='2'"
             )
             print(query)
             print(values)
             print([type(i) for i in values])
-            values = (block, JULY31, client)
+            values = (block, JULY31, nominator)
             cur.execute(query, values)
 
     # commit edit to database
     con.commit()
 
 
-def initialize_database_with_existing_contracts():
+def load_contracts():
     """
-    primary event loop to initialize the database with existing contracts
+    There are several blocks known to contain legacy contracts, replay by individual
+    Add them to the database
+    """
+    for block_num in CONTRACT_BLOCKS:
+        print("\nINSERT legacy stake in block", block_num, "\n")
+        for num in range(block_num-2, block_num+3):
+            print(num)
+            block = Block(num)
+            Block.clear_cache()
+            check_block(num, block, KEYS)
+
+
+def initialize_database_with_existing_agreements():
+    """
+    primary event loop to initialize the database with existing agreements
     :return None:
     """
+    # replay blocks known to contain legacy contracts
+    load_contracts()
     con = sql(DB)
     # convert text block to a matrix
     stake_matrix = convert_stakes_to_matrix(STAKES)
@@ -175,4 +187,4 @@ def initialize_database_with_existing_contracts():
 if __name__ == "__main__":
 
     input("WARN: this script is for single use on Sept 1, 2021 press Enter to continue")
-    initialize_database_with_existing_contracts()
+    initialize_database_with_existing_agreements()

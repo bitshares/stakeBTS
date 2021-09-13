@@ -4,15 +4,14 @@ Interest Payments on Staking
 BitShares Management Group Co. Ltd.
 """
 
-# STAKE BTS MODULES
-from config import BROKER
-
-PASSWORD = "" # manually enter for unit testing
-API_KEY = "" # manually enter for unit testing
-API_SECRET = "" # manually enter for unit testing
+CUSTODIAN = ""
+PASSWORD = ""
+API_KEY = ""
+API_SECRET = ""
+DEPOSIT_MEMO = ""
 
 KEYS = {
-    "broker": BROKER,
+    "custodian": CUSTODIAN,
     "password": PASSWORD,
     "api_1_key": API_KEY,
     "api_1_secret": API_SECRET,

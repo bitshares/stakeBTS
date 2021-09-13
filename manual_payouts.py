@@ -8,9 +8,9 @@ BitShares Management Group Co. Ltd.
 from getpass import getpass
 
 # STAKE BTS MODULES
-from config import BROKER
+from config import CUSTODIAN
 from stake_bitshares import payment_parent
-from utilities import munix, sql_db
+from utilities import munix_nonce, sql_db
 
 
 def main():
@@ -20,20 +20,20 @@ def main():
     print("\033c")
     # read from database gather list of payments due
     query = (
-        "SELECT amount, client, start, number, type FROM stakes "
-        + "WHERE (type='principal' OR type='interest') AND due<? "
+        "SELECT amount, nominator, start, number, type FROM stakes "
+        + "WHERE (type='base_amount' OR type='reward') AND due<? "
         + "AND status='processing'"
     )
-    values = (munix(),)
+    values = (munix_nonce(),)
     payments_due = sql_db(query, values)
     print(payments_due)
     choice = input("\ny + Enter to make these payments, or just Enter to abort\n")
 
     if choice == "y":
         keys = {
-            "broker": BROKER,
+            "custodian": CUSTODIAN,
             "password": getpass(
-                f"\nInput Pybitshares Password for {BROKER} and press ENTER:\n"
+                f"\nInput Pybitshares Password for {CUSTODIAN} and press ENTER:\n"
             ),
         }
         payment_parent(payments_due, keys)

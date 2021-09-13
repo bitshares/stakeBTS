@@ -11,7 +11,7 @@ from rpc import (get_balance_bittrex, get_balance_pybitshares,
 
 # USER DEFINED CONSTANTS
 AMOUNT = 1
-CLIENT = "litepresence1"
+NOMINATOR = "litepresence1"
 API = 1
 MEMO = "hello world"
 
@@ -23,12 +23,12 @@ def main():
     print("get_balance_bittrex", get_balance_bittrex(KEYS))
     print("get_balance_pybitshares", get_balance_pybitshares())
     print(
-        f"post_withdrawal_bittrex({AMOUNT}, {CLIENT}, {API}, keys)",
-        post_withdrawal_bittrex(AMOUNT, CLIENT, API, KEYS),
+        f"post_withdrawal_bittrex({AMOUNT}, {NOMINATOR}, {API}, keys)",
+        post_withdrawal_bittrex(AMOUNT, NOMINATOR, API, KEYS),
     )
     print(
-        f"post_withdrawal_pybitshares({AMOUNT}, {CLIENT}, {MEMO}, keys)",
-        post_withdrawal_pybitshares(AMOUNT, CLIENT, MEMO, KEYS),
+        f"post_withdrawal_pybitshares({AMOUNT}, {NOMINATOR}, {MEMO}, keys)",
+        post_withdrawal_pybitshares(AMOUNT, NOMINATOR, MEMO, KEYS),
     )
 
 

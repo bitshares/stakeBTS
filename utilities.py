@@ -8,6 +8,7 @@ BitShares Management Group Co. Ltd.
 # pylint: disable=broad-except, bad-continuation, invalid-name
 
 # STANDARD PYTHON MODULES
+import datetime
 import inspect
 import time
 from sqlite3 import connect as sql
@@ -39,11 +40,30 @@ def it(style, text, foreground=True):
     return f"\033[{emphasis[style]}m{str(text)}\033[0m"
 
 
-def munix():
+def convert_munix_to_date(munix, fstring="%m/%d/%Y"):
     """
-    :return int(): millesecond unix time stamp
+    convert from millesecond epoch to human readable UTC timestamp
+    :param int(munix): milleseconds since epoch
+    :param str(fstring): format of readable date
+    :return str(date): human readable date in UTC zone
     """
-    return int(1000 * time.time())
+    return (
+        datetime.datetime.utcfromtimestamp(munix / 1000)
+        .strftime(fstring)
+        .replace("01/01/1970", "00/00/0000")
+    )
+
+
+def convert_date_to_munix(date, fstring="%m/%d/%Y %H:%M"):
+    """
+    convert from human readable to millesecond epoch
+    not used by this app because our data is already in millesecond epoch
+    :param str(date): human readable date
+    :param str(fstring): format of readable date
+    :return int(): millesecond unix epoch
+    """
+    date_time_obj = datetime.datetime.strptime(date, fstring)
+    return int(date_time_obj.timestamp() * 1000)
 
 
 def munix_nonce():
@@ -51,6 +71,13 @@ def munix_nonce():
     SECURITY, mandatory increment when creating a nonce for a new stake
     :return int(): unique ascending millesecond unix time stamp
     """
+
+    def munix():
+        """
+        :return int(): millesecond unix time stamp
+        """
+        return int(1000 * time.time())
+
     now = munix()
     while munix() == now:
         time.sleep(0.0005)  # should result in 1-2 iterations

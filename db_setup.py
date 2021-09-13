@@ -47,10 +47,11 @@ def main():
         # stakes table
         query = """
         CREATE TABLE stakes (
-            client TEXT,
-            token TEXT,
+            nominator TEXT,
+            digital_asset TEXT,
             amount INTEGER,
             type TEXT,
+            nonce INTEGER,
             start INTEGER,
             due INTEGER,
             processed INTEGER,
@@ -61,7 +62,7 @@ def main():
             block_processed INTEGER,
             number INTEGER,
             UNIQUE (
-            client, type, number, block_start, trx_idx, ops_idx
+            nominator, type, number, block_start, trx_idx, ops_idx
             ) ON CONFLICT IGNORE
         );
         """

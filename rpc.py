@@ -20,9 +20,8 @@ from bitshares.memo import Memo
 
 # BITTREX MODULES
 from bittrex_api import Bittrex
-
 # STAKE BTS MODULES
-from config import BROKER, DEV, MAKE_PAYMENTS, NODE
+from config import CUSTODIAN, DEV, MAKE_PAYMENTS, NODE
 from utilities import exception_handler, it, line_info
 
 NINES = 999999999
@@ -59,19 +58,19 @@ def get_block_num_current():
 
 
 # RPC POST WITHDRAWALS
-def post_withdrawal_bittrex(amount, client, api, keys):
+def post_withdrawal_bittrex(amount, nominator, api, keys):
     """
     send funds using the bittrex api
     bittrex sends the amount requested less the tx fee, so tx fee is added
     :param int(amount): quantity to be withdrawn
-    :param str(client): bitshares username to send to
+    :param str(nominator): bitshares username to send to
     :param dict(keys): api keys and secrets for bittrex accounts
     :param int(api): 1, 2, or 3; corporate account to send from
     :return str(msg): withdrawal response from bittrex
     """
     fee = get_txfee_bittrex()
     amount = float(amount) + fee
-    msg = f"POST WITHDRAWAL BITTREX {amount} {client} {api}, response: "
+    msg = f"POST WITHDRAWAL BITTREX {amount} {nominator} {api}, response: "
     print(it("yellow", msg))
     if MAKE_PAYMENTS and not DEV:
         try:
@@ -83,7 +82,7 @@ def post_withdrawal_bittrex(amount, client, api, keys):
             params = {
                 "currencySymbol": "BTS",
                 "quantity": str(float(amount)),
-                "cryptoAddress": str(client),
+                "cryptoAddress": str(nominator),
             }
             # returns response.json() as dict or list python object
             ret = bittrex_api.post_withdrawal(**params)
@@ -94,22 +93,26 @@ def post_withdrawal_bittrex(amount, client, api, keys):
                     raise TypeError("Bittrex failed with response code")
         except Exception as error:
             msg += line_info() + " " + exception_handler(error)
-            msg += it("red", f"bittrex failed to send {amount} to client {client}",)
+            msg += it(
+                "red", f"bittrex failed to send {amount} to nominator {nominator}",
+            )
             print(msg)
+    else:
+        msg += " skipping payment... developer mode"
     return msg
 
 
-def post_withdrawal_pybitshares(amount, client, memo, keys):
+def post_withdrawal_pybitshares(amount, nominator, memo, keys):
     """
     send BTS with memo to confirm new stake from pybitshares wallet
     :param int(amount): quantity to be withdrawn
-    :param str(client): bitshares username to send to
+    :param str(nominator): bitshares username to send to
     :param dict(keys): contains pybitshares wallet password for corporate account
-    :param str(memo): message to client
+    :param str(memo): message to nominator
     :return str(msg): withdrawal response from pybitshares wallet
     """
     amount = int(amount)
-    msg = f"POST WITHDRAWAL PYBITSHARES {amount} {client} {memo}, response: "
+    msg = f"POST WITHDRAWAL PYBITSHARES {amount} {nominator} {memo}, response: "
     print(it("yellow", msg))
     if MAKE_PAYMENTS and not DEV:
         try:
@@ -118,7 +121,9 @@ def post_withdrawal_pybitshares(amount, client, memo, keys):
             bitshares, _ = pybitshares_reconnect()
             bitshares.wallet.unlock(keys["password"])
             msg += json_dumps(
-                bitshares.transfer(client, amount, "BTS", memo, account=keys["broker"])
+                bitshares.transfer(
+                    nominator, amount, "BTS", memo, account=keys["custodian"]
+                )
             )  # returns dict
             bitshares.wallet.lock()
             bitshares.clear_cache()
@@ -127,9 +132,11 @@ def post_withdrawal_pybitshares(amount, client, memo, keys):
             msg += it(
                 "red",
                 f"pybitshares failed to send {amount}"
-                + f"to client {client} with memo {memo}, ",
+                + f"to nominator {nominator} with memo {memo}, ",
             )
             print(msg)
+    else:
+        msg += " skipping payment... developer mode"
     return msg
 
 
@@ -210,7 +217,7 @@ def get_balance_bittrex(keys):
 
 def get_balance_pybitshares():
     """
-    get the broker's BTS balance
+    get the custodian's BTS balance
     NOTE: balance is returned less withdrawal fee
     NOTE: balance is returned rounded down as int()
     :return int(): BTS balance
@@ -221,7 +228,7 @@ def get_balance_pybitshares():
             balance = NINES
         else:
             _, _ = pybitshares_reconnect()
-            account = Account(BROKER)
+            account = Account(CUSTODIAN)
             balance = int(account.balance("BTS")["amount"])
             balance -= fee
     except Exception as error:

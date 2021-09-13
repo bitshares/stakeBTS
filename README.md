@@ -2,7 +2,7 @@
 
 `APP VERSION`
 
-**v2.2**
+**v2.3**
 
 `PYTHON VERSION`
 
@@ -24,8 +24,8 @@
 
 `DESCRIPTION`
 
-Recurring interest and principal payment automation
-for bitsharesmanagement.group to stakeBTS clients
+Recurring reward and base_amount payment automation
+for bitsharesmanagement.group to stakeBTS nominators
 
 `INSTALLATION`
 
@@ -65,12 +65,12 @@ It will:
 - set up the tables
 - check the schema and that the stake table is empty
 
-**Next we'll replay the blocks containing legacy contracts**
+**Next we'll replay the blocks containing legacy agreements**
 
 in dev_auth.py input your credentials to these user specified CONSTANTS:
 
 ```
-BROKER = ???
+CUSTODIAN = ???
 PASSWORD = ???
 ```
 
@@ -78,27 +78,27 @@ These credentials are required to decode the memos,
 
 you can leave the other three dev_auth.py credentials blank at this time
 
-in config.py set these user specified CONSTANTS:
+
+Next, in config.py set these constants:
 
 ```
 DEV = False
 DEV_AUTH = True
 ADMIN_REPLAY = False
 MAKE_PAYMENTS = False
-REPLAY = 59106020
 ```
 
-Then run:
+Next, run:
 
-`python3.8 stake_bitshares.py`
+```
+python3.8 import_data.py
+```
 
 It will:
 
-- replay the legacy contracts and enter them into the database
+- Replay blocks where legacy contracts were created and set them up in the database
 
-At block number 60693000 you can stop the replay
-
-`ctrl + \`
+- mark all manual payments to date paid on June 30, July 31, and Aug 31
 
 At this point you should view the contents of the stakes table:
 
@@ -108,9 +108,12 @@ SELECT * FROM stakes;
 .quit
 ```
 
-It should display 25 legacy contracts and all potential payements due
+It should display 25 legacy agreements + all recent additional agreements
 
-If there are any additional contracts,
+They should now be updated with all manual payments marked as paid
+
+
+If there are any additional agreements not yet entered
 
 in config.py set replay to 2 less than the block they occur in:
 
@@ -122,36 +125,13 @@ Then run:
 
 `python3.8 stake_bitshares.py`
 
-It will pick up the contracts and add them to the db.  
+It will pick up the agreements and add them to the db.
 
 You can stop the script a few blocks later.
 
 `ctrl + \`
 
-Repeat this process for any additional contracts you need to import
-
-**Next we need to mark any payments made manually as PAID**
-
-Run:
-
-```
-python3.8 import_data.py
-```
-
-It will:
-
-- mark all manual payments to date paid
-
-At this point you should view the contents of the stakes table:
-
-```
-sqlite3 database/stake_bitshares.py
-SELECT * FROM stakes;
-.quit
-```
-It should display 25 legacy contracts + any additional contracts
-
-They should now be updated with all manual payments marked as paid
+Repeat this process for any additional agreements you need to import
 
 ### NOTE: CAREFULLY REVIEW THIS DATA FOR ACCURACY!!!
 
@@ -169,13 +149,13 @@ MAKE_PAYMENTS = True
 REPLAY = False
 ```
 
-in config.py, also... 
+in config.py, also...
 
 be sure you have entered `NODE`
 
 finally, enter the 3 `BITTREX_N` deposit memos
 
-It is important here that you keep them ordered the same 
+It is important here that you keep them ordered the same
 
 as your api keys and secrets for each, eg:
 
@@ -199,18 +179,18 @@ You will be prompted for all credentials, pybitshares and bittrex
 CHANGELIST v2.0
 `
 - previously payouts were occurring at end of month
-- all future payouts will occur in 30 day intervals from beginning of contract
+- all future payouts will occur in 30 day intervals from beginning of agreement
 - if you were paid early previously this may mean up to 59 days until next payout
 - all payout amounts will be rounded down to nearest whole bitshare
-- user will receive receipt as memo w/ 1 BTS upon creating a new contract
+- user will receive receipt as memo w/ 1 BTS upon creating a new agreement
 - all payouts will come from bitsharesmanagement.group
 - in the event of payout failure, 1 BTS will be sent with additional support info
-- client sends an invalid amount or invalid memo he will be refuned less 50 BTS penalty
-- manager can use bot to transfer funds to and from bittrex to brokerage account
-- manager can use bot to personally loan funds to the brokerage account
-- new database format, all payouts are added to database at start of contract
+- nominator sends an invalid amount or invalid memo he will be refuned less 50 BTS penalty
+- manager can use bot to transfer funds to and from bittrex to custodianage account
+- manager can use bot to personally loan funds to the custodianage account
+- new database format, all payouts are added to database at start of agreement
 - new database format, all outbound payment details are kept as receipts
-- in the event brokerage account is low on funds, bot will pull from bittrex accounts
+- in the event custodianage account is low on funds, bot will pull from bittrex accounts
 - all current payouts due are grouped into a thread
 - each individual payout is also a thread
 - apscheduler has been replaced by a custom database items due listener
@@ -221,10 +201,10 @@ CHANGELIST v2.2
 `
 - post withdrawal and get balances now account for fees
 - new trx_idx and ops_idx allow for multiple stakes from one user in same block
-- new initiation procedure gathers accurate block number for legacy contracts
+- new initiation procedure gathers accurate block number for legacy agreements
 
 `NOTES`
-- Requires creation of uptick wallet w/ `BROKER`'s `Acitve` and `Memo` keys
+- Requires creation of uptick wallet w/ `CUSTODIAN`'s `Acitve` and `Memo` keys
 - On BOT start you will be asked to enter your uptick WALLET password
 - Bittrex api is used for outbound payments.
 - You must also have Bittrex API key/secret.
@@ -233,31 +213,31 @@ CHANGELIST v2.2
 - All amounts of funds stored in DB and sent are integers of BTS
 - Nothing is ever removed from the database
 
-`CLIENT JSON FORMAT`
+`NOMINATOR JSON FORMAT`
 
 {"type":"MEMO_OPTIONS"}
 
 `MEMO OPTIONS`
- 
-client memo options
+
+nominator memo options
 
  - `three_months`
  - `six_months`
  - `twelve_months`
  - `stop`
 
-admin memo options (requires LTM account AND client being in MANAGER list)
+admin memo options (requires LTM account AND nominator being in MANAGER list)
 
  - `bmg_to_bittrex`
  - `bittrex_to_bmg`
  - `loan_to_bmg`
- 
+
 if need be visit https://jsonlint.com/ to confirm you have created legit json
 
-the bot will also accept non json formatted client memos eg; `six_months` would be sufficient
- 
+the bot will also accept non json formatted nominator memos eg; `six_months` would be sufficient
+
 it will also attempt to be kind to some silly errors, eg:
- 
+
 - `'   six_months `
 - `six_months  '`
 - `"six_months"`
@@ -269,7 +249,7 @@ should all parse, but other errors will be charged a fee...
 `FEES`
 
 The bot charges a fee of 50 BTS and returns your funds if:
- 
+
 - sending invalid stake amount
 - sending invalid memo
 - sending admin request without being in MANAGER list
@@ -283,15 +263,15 @@ CREATE TABLE block (
 );
 ```
 - NOTE all payments *potentially* due
-- are entered into "stakes" TABLE at start of contract
+- are entered into "stakes" TABLE at start of agreement
 - as events unfold, their "status", "block", and "processed" time changes
 ```
     CREATE TABLE stakes (
-        client TEXT             # bitshares user name for client
-        token TEXT              # bitshares asset name
+        nominator TEXT             # bitshares user name for nominator
+        digital_asset TEXT              # bitshares asset name
         amount INTEGER          # amount of asset rounded to nearest integer
-        type TEXT               # contract, principal, penalty, or interest
-        start INTEGER           # munix start time of contract
+        type TEXT               # agreement, base_amount, penalty, or reward
+        start INTEGER           # munix start time of agreement
         due INTEGER             # munix due date of this payment
         processed INTEGER       # munix time at which payment was actually processed
         status TEXT             # pending, paid, aborted, or premature
@@ -299,16 +279,16 @@ CREATE TABLE block (
         trx_idx INTEGER         # unique transaction index
         ops_idx INTEGER         # unique operation index
         block_processed INTEGER # bitshares block number upon payment
-        number INTEGER          # counting number for interest payments, eg 1,2,3,4...
+        number INTEGER          # counting number for reward payments, eg 1,2,3,4...
         UNIQUE (                # unique prevents duplicate stakes in the db
-            client, type, number, block_start, trx_idx, ops_idx
+            nominator, type, number, block_start, trx_idx, ops_idx
             ) ON CONFLICT IGNORE
     );
 ```
 - receipts will hold transaction details for all incoming and outgoing tx's
 ```
     CREATE TABLE receipts (
-        nonce INTEGER           # munix start time of contract (same as 'stakes/start')
+        nonce INTEGER           # munix start time of agreement (same as 'stakes/start')
         now INTEGER             # munix moment when event occurred
         msg TEXT                # receipt details for audit trail
     );
@@ -318,11 +298,11 @@ CREATE TABLE block (
 INSERT INTO block_num (block_num) VALUES (59120000); # the initial starting block
 ```
 
-`preexisting_contracts.py and import_data.py`
+`preexisting_agreements.py and import_data.py`
 
-preexisting_contracts.py houses a single global constant of block text in format:
+preexisting_agreements.py houses a single global constant of block text in format:
 ```
-username milliseconds_unix amount contract_length months_paid
+username milliseconds_unix amount agreement_length months_paid
 ```
 can be tab or space delimited, eg:
 ```
@@ -331,52 +311,52 @@ can be tab or space delimited, eg:
         user9043 1623176546500 50000  3 2
     """
 ```
-import_data.py moves those existing contracts to the database in the same
+import_data.py moves those existing agreements to the database in the same
 
-manner as all other contracts thereafter.
+manner as all other agreements thereafter.
 
 `DISCUSSION`
  ```
 The stakeBTS is 2 listeners with withdrawal priviledges
 communicating via sql database.
 1) bitshares block operation listener:
-    listens for new client stakes
+    listens for new nominator stakes
         sends stake confirmation (withdrawal)
         inputs potential stake payouts to database
-    listens for cancelled client stakes
-        ends stakes prematurely paying principal less penalty (withdrawal)
-        updates database accordingly and aborts further interest payments
+    listens for cancelled nominator stakes
+        ends stakes prematurely paying base_amount less penalty (withdrawal)
+        updates database accordingly and aborts further reward payments
 2) payment due sql database listener:
     listens for pending items past due
-    pays interest and principal on due time (withdrawal)
+    pays reward and base_amount on due time (withdrawal)
     if penalty becomes due its aborted
 
-a client approaches bmg w/ a new stake the bot creates database rows
+a nominator approaches bmg w/ a new stake the bot creates database rows
 for every potential outcome of that stake;
 there will always be 3 + number of months rows created.
-contract_n, principal, penalty, interest, interest, interest, etc.
-and interest payments will be numbered,
-contract will always be for amount 1, and penalty will always be negative.
+agreement_n, base_amount, penalty, reward, reward, reward, etc.
+and reward payments will be numbered,
+agreement will always be for amount 1, and penalty will always be negative.
 every payment, regardless of type, will have a due date upon creation...
-contract is always due on day of creation.
-principal and penalty are always due at close of contract.
-interest is due in ascending 30 day periods.
-for example a 100000 3 month contract has 6 lines
+agreement is always due on day of creation.
+base_amount and penalty are always due at close of agreement.
+reward is due in ascending 30 day periods.
+for example a 100000 3 month agreement has 6 lines
 
-1) type=contract_3 amount=1 status=paid number=0
-2) type=principal amount=100000 status=pending number=0
+1) type=agreement_3 amount=1 status=paid number=0
+2) type=base_amount amount=100000 status=pending number=0
 3) type=penalty amount=-15000 status=pending number=0
-4) type=interest amount=8000 status=pending number=1
-5) type=interest amount=8000 status=pending number=2
-6) type=interest amount=8000 status=pending number=3
+4) type=reward amount=8000 status=pending number=1
+5) type=reward amount=8000 status=pending number=2
+6) type=reward amount=8000 status=pending number=3
 
-this is the stake rows of 3 month contract -
+this is the stake rows of 3 month agreement -
 there are also additional columns for timestamps, etc...
 but we'll skip them for now just to have discussion
-so whether a new user approaches... or we put old contracts into the database...
-if its a 3 month contract there are 6 db entries
-(6 month contract has +3 entries and
-12 month contract has +6 entries to account for additional interest payments)
+so whether a new user approaches... or we put old agreements into the database...
+if its a 3 month agreement there are 6 db entries
+(6 month agreement has +3 entries and
+12 month agreement has +6 entries to account for additional reward payments)
 in the case of new user...
 as each pending item approaches its due date, it will be processed.
 
@@ -384,36 +364,36 @@ The bot (aside from being a block ops listener)
 is also effectively a "database listener"
 looking for status=pending where time due < now.
 
-1) if interest becomes due its paid.
-2) if the penalty comes due it is aborted and final principal+interest is paid.
-3) if the user takes principal prior to due...
+1) if reward becomes due its paid.
+2) if the penalty comes due it is aborted and final base_amount+reward is paid.
+3) if the user takes base_amount prior to due...
 
-then pending interest are aborted
-and the (negative) penalty is paid against the principal.
-in the case of an existing "old" contract...
+then pending reward are aborted
+and the (negative) penalty is paid against the base_amount.
+in the case of an existing "old" agreement...
 it is uploaded in the database the exact same way;
 but automated/simulated by script to run through the text document containing them...
 rather than via "block ops listener".
 additionally... the import old data script goes in and overwrites the "pending" status
- on the 1st (or 1st and 2nd) interest payment to "paid"
+ on the 1st (or 1st and 2nd) reward payment to "paid"
  so that it does not get processed again by the main script.
 it uses the number column in the database to update the correct payment
 and marks them processed on june 30 or july 31 of this year
 this happens once prior to the main script startup you'll have to run import_data.py
-to build the initial database of old contracts. It
+to build the initial database of old agreements. It
 
-1) adds all line items for each old contract and
+1) adds all line items for each old agreement and
 2) marks those already manually processed as paid.
 
 then when you start running the main script full time...
-the 3rd final payout of an old contract (some cases 2nd and 3rd)
+the 3rd final payout of an old agreement (some cases 2nd and 3rd)
 will still be a pending item in the database to be processed.
 It will either pay it as it comes due...
 or if taken prematurely it will abort it
-and return principal less penalty as it would with any other stake.
+and return base_amount less penalty as it would with any other stake.
 
 Once the main bot is running
-it won't know the difference between old contracts and new.
+it won't know the difference between old agreements and new.
 it just sees "pending" vs "paid/aborted" line items
 ```
 
@@ -431,20 +411,23 @@ it just sees "pending" vs "paid/aborted" line items
 ### 2) BLOCK OPERATIONS LISTENER
 - reset database
 - in config.py set `DEV = True`
-- send 0.1 BTS to broker, ensure script hears it arrive to the `BROKER` account.
+- send 0.1 BTS to custodian, ensure script hears it arrive to the `CUSTODIAN` account.
 - check state of `receipts` and `stakes` database tables
 
 ### 3) DATABASE LISTENER
 - in config.py set `DEV = True`
 - reset database
-- load old contracts:
+- load old agreements:
 - - `python3.8 import_data.py`
 - print database contents:
 - - `sqlite3 stake_bitshares.db`
 - - `SELECT * FROM stakes;`
-- via sql, change the due date on a single payment to 0, see that it gets paid
+- run
+- - `python3 stake_bitshares.py`
+- in a second terminal via sql, change the due date on a single payment to 0,
+- see that it gets paid
 - - `sqlite3 stake_bitshares.db`
-- - `UPDATE stakes SET due=0 WHERE client='user1234' AND number=6;`
+- - `UPDATE stakes SET due=0 WHERE nominator='user1234' AND number=6;`
 - check state of `receipts` and `stakes` database tables
 
 ### 4) REPLAY BLOCKS
@@ -455,7 +438,7 @@ it just sees "pending" vs "paid/aborted" line items
 - script should not create duplicates in stakes database when replaying
 - check state of `receipts` and `stakes` database tables
 
-### 5) CLIENT MEMOS
+### 5) NOMINATOR MEMOS
 - reset database
 - with config.py set `DEV = False` and `100` added to the list of `INVEST_AMOUNTS`
 - send an invalid amount `99`
@@ -474,15 +457,15 @@ it just sees "pending" vs "paid/aborted" line items
 - reset database
 - send 1000 BTS to Bittrex
 - with config.py set `DEV = False` and `100` added to the list of `INVEST_AMOUNTS`
-- insert line item in `stakes` table with amount ~500 BTS more than balance of BROKER:
+- insert line item in `stakes` table with amount ~500 BTS more than balance of CUSTODIAN:
 - - `INSERT INTO`
 - - `stakes`
-- - `(client, token, amount, type, start, due, processed, status, block_start, block_processed, number)`
+- - `(nominator, digital_asset, amount, type, start, due, processed, status, block_start, block_processed, number)`
 - - `VALUES`
-- - `('user1234', 'BTS', BALANCE_BROKER, 'interest', 0, 0, 0, 'pending', 0, 0, 1)`
-- empty the broker account
+- - `('user1234', 'BTS', BALANCE_CUSTODIAN, 'reward', 0, 0, 0, 'pending', 0, 0, 1)`
+- empty the custodian account
 - send memo to `stop` a stake
-- bot should move funds from bittrex to pybitshares wallet, then to client to cover
+- bot should move funds from bittrex to pybitshares wallet, then to nominator to cover
 - ideally this should be tested with various amounts in all 3 Bittrex wallets
 
 `FEATURES`
@@ -505,13 +488,13 @@ This software is sponsored and managed by BitShares Management Group Limited
 - https://bitsharesmanagement.group
 - https://bitsharestalk.org
 - https://bitshares.org
-                                                
+
 `TRADEMARK`
-                                                
-2014-2021. BitShares, and any associated logos are trademarks, 
-                                                
+
+2014-2021. BitShares, and any associated logos are trademarks,
+
 service marks, and/or registered trademarks of Move Institute, Slovenia.
-                                                
+
 `DEVELOPERS`
 
 v1.0 initial prototype
@@ -521,14 +504,13 @@ v1.0 initial prototype
 v2.0 refactor, refinement, added features
 
 - litepresence: finitestate@tutamail.com https://github.com/litepresence
-                                                
+
 `COMMENTS, COMPLAINTS, other ISSUES`
 
-If you are a current or prospective `bitshares management group` 
-                                                
-client with any concerns or would like to confidentially report 
-                                                
+If you are a current or prospective `bitshares management group`
+
+nominator with any concerns or would like to confidentially report
+
 security vulnerabilities, please contact:
-                  
-complaints@stakebts.bitsharesmanagement.group                                                
-                                                
+
+complaints@stakebts.bitsharesmanagement.group
