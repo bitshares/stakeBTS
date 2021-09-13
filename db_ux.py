@@ -63,7 +63,7 @@ def read_receipts():
     receipts = []
     for receipt in curfetchall:
         row = {
-            "date": convert_munix_to_date(receipt[1]),
+            "date": convert_munix_to_date(receipt[1], fstring="%m/%d/%Y"),
             "nonce": receipt[0],
             "receipt": receipt[2],
         }
