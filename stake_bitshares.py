@@ -368,7 +368,7 @@ def serve_nominator(params, keys):
 
 def serve_admin(params, keys):
     """
-    transfer funds to and from bittrex or loan funds to custodianage account
+    transfer funds to and from bittrex or loan funds to custodian account
     :params dict(memo):
     :params int(amount):
     :params str(nominator):
@@ -610,7 +610,7 @@ def payment_child(params, keys):
         params.get, ("amount", "nominator", "nonce", "number")
     )
     print(it("green", str(("make payout process", amount, nominator, nonce, number))))
-    # calculate need vs check how much funds we have on hand in the custodianage account
+    # calculate need vs check how much funds we have on hand in the custodian account
     # always keep 100 BTS on hand for fees, sending receipt memos, etc.
     params.update(
         {"need": amount + 100, "pybitshares_balance": get_balance_pybitshares()}
@@ -667,7 +667,7 @@ def payment_cover(params, keys):
         bittrex_balance = get_balance_bittrex(keys)  # returns dict()
         # assuming we can cover it with bittrex balances
         if sum(bittrex_balance.values()) > deficit:
-            # we start moving funds until we have just enough in the custodianage acct
+            # we start moving funds until we have just enough in the custodian acct
             for api in range(1, 4):
                 bittrex_available = bittrex_balance[api]
                 if bittrex_available > 510:
