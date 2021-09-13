@@ -290,7 +290,7 @@ def stake_stop(params, keys):
         values = (nonce, block_num, nominator)
         dml = {"query": query, "values": values}
         queries.append(dml)
-        sql_db(queries)
+    sql_db(queries)
     # SECURITY - make payouts after sql updates
     # send premature payment to nominator
     # total base_amounts less total penalties
