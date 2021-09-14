@@ -16,6 +16,7 @@ from dev_auth import KEYS
 from preexisting_contracts import CONTRACT_BLOCKS, STAKES
 from rpc import pybitshares_reconnect
 from stake_bitshares import check_block
+from utilities import sql_db
 
 # USER DEFINED CONSTANTS
 JUNE30 = 1625011200000
@@ -71,14 +72,13 @@ def add_block_num(stake_matrix):
     return stake_matrix
 
 
-def mark_prepaid_stakes(stake_matrix, con):
+def mark_prepaid_stakes(stake_matrix):
     """
     make database changes to mark payments prepaid as "paid" with appropriate munix
     :param matrix(stake_matrix): text database converted to python list of lists
     :param object(con): database connection
     :return None:
     """
-    cur = con.cursor()
     # search through our prepaid stake matrix for payments already made
     for stake in stake_matrix:
         # extract the user name and number of payments already executed
@@ -94,10 +94,7 @@ def mark_prepaid_stakes(stake_matrix, con):
                 + "AND number='1'"
             )
             values = (block, AUG31, nominator)
-            print(query)
-            print(values)
-            print([type(i) for i in values])
-            cur.execute(query, values)
+            sql_db(query, values)
         # handle cases where one payment has been sent already
         if prepaid == 1:
             block = convert_munix_to_block(JULY31)
@@ -108,10 +105,7 @@ def mark_prepaid_stakes(stake_matrix, con):
                 + "AND number='1'"
             )
             values = (block, JULY31, nominator)
-            print(query)
-            print(values)
-            print([type(i) for i in values])
-            cur.execute(query, values)
+            sql_db(query, values)
         # handle cases where two payments have been sent already
         if prepaid == 2:
             block = convert_munix_to_block(JUNE30)
@@ -122,10 +116,7 @@ def mark_prepaid_stakes(stake_matrix, con):
                 + "AND number='1'"
             )
             values = (block, JUNE30, nominator)
-            print(query)
-            print(values)
-            print([type(i) for i in values])
-            cur.execute(query, values)
+            sql_db(query, values)
             block = convert_munix_to_block(JULY31)
             query = (
                 "UPDATE stakes "
@@ -133,23 +124,17 @@ def mark_prepaid_stakes(stake_matrix, con):
                 + "WHERE nominator=? AND type='reward' AND status='pending' "
                 + "AND number='2'"
             )
-            print(query)
-            print(values)
-            print([type(i) for i in values])
             values = (block, JULY31, nominator)
-            cur.execute(query, values)
-
-    # commit edit to database
-    con.commit()
+            sql_db(query, values)
 
 
-def load_contracts():
+def load_agreements():
     """
-    There are several blocks known to contain legacy contracts, replay by individual
+    There are several blocks known to contain legacy agreements, replay by individual
     Add them to the database
     """
     for block_num in CONTRACT_BLOCKS:
-        print("\nINSERT legacy stake in block", block_num, "\n")
+        print("\nINSERT nominator request in block", block_num, "\n")
         for num in range(block_num-2, block_num+3):
             print(num)
             block = Block(num)
@@ -162,29 +147,23 @@ def initialize_database_with_existing_agreements():
     primary event loop to initialize the database with existing agreements
     :return None:
     """
-    # replay blocks known to contain legacy contracts
-    load_contracts()
-    con = sql(DB)
+    # replay blocks known to contain legacy agreements
+    load_agreements()
     # convert text block to a matrix
     stake_matrix = convert_stakes_to_matrix(STAKES)
     # add block number to each row in matrix
     stake_matrix = add_block_num(stake_matrix)
     # mark payouts already made as paid
-    mark_prepaid_stakes(stake_matrix, con)
-    # display results and close db connection
-    # query = ".schema stakes"
-    # print(query)
-    # con.execute(query)
-    query = "PRAGMA table_info(stakes);"
-    print(query)
-    con.execute(query)
+    mark_prepaid_stakes(stake_matrix)
+    # display results
     query = "SELECT * from stakes;"
-    print(query)
-    con.execute(query)
-    con.close()
+    print(sql_db(query))
 
 
 if __name__ == "__main__":
 
-    input("WARN: this script is for single use on Sept 1, 2021 press Enter to continue")
-    initialize_database_with_existing_agreements()
+    print("WARN: this script is single use to setup database with legacy agreements")
+    print("it will input legacy contracts to database, and mark manual payouts paid")
+    choice = input("\ny + Enter to continue, or just Enter to abort\n")
+    if choice == "y":
+        initialize_database_with_existing_agreements()
