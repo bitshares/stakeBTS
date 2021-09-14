@@ -257,7 +257,6 @@ def stake_stop(params, keys):
     amount = sum(amounts_due)
     items_due = len(amounts_due)
     contract_nonces = list(set([int(i[0]) for i in curfetchall_2]))
-    start_nonce = min(contract_nonces)
     # batch stop stake queries and process them atomically
     queries = []
     # SECURITY: there may be multiple contracts to stop
@@ -295,6 +294,7 @@ def stake_stop(params, keys):
     # send premature payment to nominator
     # total base_amounts less total penalties
     if amount > 0:
+        start_nonce = min(contract_nonces)
         params["nonce"] = start_nonce  # earliest pending nonce for receipts table
         params["amount"] = amount
         params["number"] = 0
@@ -312,7 +312,7 @@ def stake_stop(params, keys):
             msg += f"but has negative amount {amount} due"
         print(it("red", msg))
         update_receipt_database(nonce, msg)
-
+        
 
 def stake_paid(params):
     """
