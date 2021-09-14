@@ -11,7 +11,6 @@ from sqlite3 import connect as sql
 from bitshares.block import Block
 
 # STAKEBTS MODULES
-from config import DB
 from dev_auth import KEYS
 from preexisting_contracts import CONTRACT_BLOCKS, STAKES
 from rpc import pybitshares_reconnect
@@ -135,7 +134,7 @@ def load_agreements():
     """
     for block_num in CONTRACT_BLOCKS:
         print("\nINSERT nominator request in block", block_num, "\n")
-        for num in range(block_num-2, block_num+3):
+        for num in range(block_num - 2, block_num + 3):
             print(num)
             block = Block(num)
             Block.clear_cache()
@@ -147,23 +146,22 @@ def initialize_database_with_existing_agreements():
     primary event loop to initialize the database with existing agreements
     :return None:
     """
-    # replay blocks known to contain legacy agreements
-    load_agreements()
-    # convert text block to a matrix
-    stake_matrix = convert_stakes_to_matrix(STAKES)
-    # add block number to each row in matrix
-    stake_matrix = add_block_num(stake_matrix)
-    # mark payouts already made as paid
-    mark_prepaid_stakes(stake_matrix)
-    # display results
-    query = "SELECT * from stakes;"
-    print(sql_db(query))
-
-
-if __name__ == "__main__":
-
     print("WARN: this script is single use to setup database with legacy agreements")
     print("it will input legacy contracts to database, and mark manual payouts paid")
     choice = input("\ny + Enter to continue, or just Enter to abort\n")
     if choice == "y":
-        initialize_database_with_existing_agreements()
+        # replay blocks known to contain legacy agreements
+        load_agreements()
+        # convert text block to a matrix
+        stake_matrix = convert_stakes_to_matrix(STAKES)
+        # add block number to each row in matrix
+        stake_matrix = add_block_num(stake_matrix)
+        # mark payouts already made as paid
+        mark_prepaid_stakes(stake_matrix)
+        # display results
+        query = "SELECT * from stakes"
+        print(sql_db(query))
+
+if __name__ == "__main__":
+
+    initialize_database_with_existing_agreements()
