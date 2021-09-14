@@ -294,8 +294,7 @@ def stake_stop(params, keys):
     # send premature payment to nominator
     # total base_amounts less total penalties
     if amount > 0:
-        start_nonce = min(contract_nonces)
-        params["nonce"] = start_nonce  # earliest pending nonce for receipts table
+        params["nonce"] = min(contract_nonces)  # earliest pending nonce for receipt
         params["amount"] = amount
         params["number"] = 0
         params["type"] = "stop"
