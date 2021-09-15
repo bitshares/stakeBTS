@@ -4,16 +4,12 @@ Import Old Contracts to Database Upon Initialization
 BitShares Management Group Co. Ltd.
 """
 
-# STANDARD MODULES
-from sqlite3 import connect as sql
-
 # PYBITSHARES MODULES
 from bitshares.block import Block
 
 # STAKEBTS MODULES
 from dev_auth import KEYS
-from preexisting_contracts import CONTRACT_BLOCKS, STAKES
-from rpc import pybitshares_reconnect
+from preexisting_contracts import MANUAL_PAYOUT_CODES, LEGACY_AGREEMENTS
 from stake_bitshares import check_block
 from utilities import sql_db
 
@@ -23,26 +19,6 @@ JULY31 = 1627689600000
 AUG31 = 1630411200000
 BLOCK0 = 1445838432000  # assuming perfect blocktime, calculated Aug 7, 2021
 
-
-def get_dynamic_globals():
-    """
-    not actually used by this script,
-    but allows us to associate a recent block num to unix time for dev
-    :return dict():
-    """
-    bitshares, _ = pybitshares_reconnect()
-    print(bitshares.rpc.get_dynamic_global_properties())
-
-
-def convert_stakes_to_matrix(stakes):
-    """
-    STAKES is a block of text, we'll need to import that to python list of lists
-    data must be in space seperated column format:
-    username, munix, amount, term_in_months, months_prepaid
-    :param str(stakes): multi-line space delimited text field
-    :return matrix [[],[],[],...]:
-    """
-    return [i.strip().split() for i in stakes.splitlines() if i]
 
 
 def convert_munix_to_block(munix):
@@ -57,74 +33,68 @@ def convert_munix_to_block(munix):
     :param int(munix): timestamp in milleseconds since epoch
     :return int(): block number
     """
+    # FIXME this may be 1800 blocks (2 hours) off?
+    # this could be mastered gradient descent heuristic
     return int((int(munix) / 1000 - BLOCK0 / 1000) / 3)
 
 
-def add_block_num(stake_matrix):
-    """
-    our stake matrix has unix timestamps, we'll add approximate block number
-    :param matrix(stake_matrix): text database converted to python list of lists
-    :return matrix [[],[],[],...]:
-    """
-    for item, stake in enumerate(stake_matrix):
-        stake_matrix[item].append(convert_munix_to_block(stake[1]))
-    return stake_matrix
-
-
-def mark_prepaid_stakes(stake_matrix):
+def mark_prepaid_stakes():
     """
     make database changes to mark payments prepaid as "paid" with appropriate munix
     :param matrix(stake_matrix): text database converted to python list of lists
     :param object(con): database connection
     :return None:
     """
-    # search through our prepaid stake matrix for payments already made
-    for stake in stake_matrix:
-        # extract the user name and number of payments already executed
-        nominator = str(stake[0])
-        prepaid = int(stake[4])
-        # handle two last minute payments on august 31st for sune-3355 and bts-stakeacc
-        if prepaid == 0:
-            block = convert_munix_to_block(AUG31)
-            query = (
-                "UPDATE stakes "
-                + "SET status='paid', block_processed=?, processed=? "
-                + "WHERE nominator=? AND type='reward' AND status='pending' "
-                + "AND number='1'"
-            )
-            values = (block, AUG31, nominator)
-            sql_db(query, values)
-        # handle cases where one payment has been sent already
-        if prepaid == 1:
-            block = convert_munix_to_block(JULY31)
-            query = (
-                "UPDATE stakes "
-                + "SET status='paid', block_processed=?, processed=? "
-                + "WHERE nominator=? AND type='reward' AND status='pending' "
-                + "AND number='1'"
-            )
-            values = (block, JULY31, nominator)
-            sql_db(query, values)
-        # handle cases where two payments have been sent already
-        if prepaid == 2:
-            block = convert_munix_to_block(JUNE30)
-            query = (
-                "UPDATE stakes "
-                + "SET status='paid', block_processed=?, processed=? "
-                + "WHERE nominator=? AND type='reward' AND status='pending' "
-                + "AND number='1'"
-            )
-            values = (block, JUNE30, nominator)
-            sql_db(query, values)
-            block = convert_munix_to_block(JULY31)
-            query = (
-                "UPDATE stakes "
-                + "SET status='paid', block_processed=?, processed=? "
-                + "WHERE nominator=? AND type='reward' AND status='pending' "
-                + "AND number='2'"
-            )
-            values = (block, JULY31, nominator)
-            sql_db(query, values)
+    # SECURITY: this process must be manually audited prior to 1st live bot start
+    # search through our MANUAL_PAYOUT_CODES dict for a list of payments already made
+    # extract the user name and list of payout codes of manual payments executed
+    for nominator, payout_codes in MANUAL_PAYOUT_CODES.items():
+        # for each payout code associated with this nominator
+        # apply a custom payout that must be accounted for through database audit
+        # failure to account for a manual payout can result in double spend
+        for code in payout_codes:
+            # handle two last minute payments on august 31st for sune-3355 and bts-stakeacc
+            if code == 0:
+                block = convert_munix_to_block(AUG31)
+                query = (
+                    "UPDATE stakes "
+                    + "SET status='paid', block_processed=?, processed=? "
+                    + "WHERE nominator=? AND type='reward' AND status='pending' "
+                    + "AND number='1'"
+                )
+                values = (block, AUG31, nominator)
+                sql_db(query, values)
+            # handle cases where only JULY31 payment has been sent already
+            if code == 1:
+                block = convert_munix_to_block(JULY31)
+                query = (
+                    "UPDATE stakes "
+                    + "SET status='paid', block_processed=?, processed=? "
+                    + "WHERE nominator=? AND type='reward' AND status='pending' "
+                    + "AND number='1'"
+                )
+                values = (block, JULY31, nominator)
+                sql_db(query, values)
+            # handle cases where JUNE30 and JULY31 payments have been sent
+            if code == 2:
+                block = convert_munix_to_block(JUNE30)
+                query = (
+                    "UPDATE stakes "
+                    + "SET status='paid', block_processed=?, processed=? "
+                    + "WHERE nominator=? AND type='reward' AND status='pending' "
+                    + "AND number='1'"
+                )
+                values = (block, JUNE30, nominator)
+                sql_db(query, values)
+                block = convert_munix_to_block(JULY31)
+                query = (
+                    "UPDATE stakes "
+                    + "SET status='paid', block_processed=?, processed=? "
+                    + "WHERE nominator=? AND type='reward' AND status='pending' "
+                    + "AND number='2'"
+                )
+                values = (block, JULY31, nominator)
+                sql_db(query, values)
 
 
 def load_agreements():
@@ -132,7 +102,10 @@ def load_agreements():
     There are several blocks known to contain legacy agreements, replay by individual
     Add them to the database
     """
-    for block_num in CONTRACT_BLOCKS:
+    # SECURITY: this process must be manually audited prior to 1st live bot start
+    # failure to include a correct legacy agreement block number
+    # can result in failed payout to that nominator
+    for block_num in LEGACY_AGREEMENTS:
         print("\nINSERT nominator request in block", block_num, "\n")
         for num in range(block_num - 2, block_num + 3):
             print(num)
@@ -152,12 +125,8 @@ def initialize_database_with_existing_agreements():
     if choice == "y":
         # replay blocks known to contain legacy agreements
         load_agreements()
-        # convert text block to a matrix
-        stake_matrix = convert_stakes_to_matrix(STAKES)
-        # add block number to each row in matrix
-        stake_matrix = add_block_num(stake_matrix)
         # mark payouts already made as paid
-        mark_prepaid_stakes(stake_matrix)
+        mark_prepaid_stakes()
         # display results
         query = "SELECT * from stakes"
         print(sql_db(query))
