@@ -45,6 +45,7 @@ def main():
         dml = {"query": query, "values": ()}
         queries.append(dml)
         # stakes table
+
         query = """
         CREATE TABLE stakes (
             nominator TEXT,
@@ -62,10 +63,13 @@ def main():
             block_processed INTEGER,
             number INTEGER,
             UNIQUE (
-            nominator, type, number, block_start, trx_idx, ops_idx
+            type, number, block_start, trx_idx, ops_idx
             ) ON CONFLICT IGNORE
         );
-        """
+        """         
+        # SECURITY: UNIQUE() prevents duplicate database entries
+        # {block_start, trx_idx, ops_idx} is a unique blockchain operation
+        # {type, number} is a unique database row per stake
         dml = {"query": query, "values": ()}
         queries.append(dml)
         # receipts table
