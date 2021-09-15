@@ -4,35 +4,35 @@ Contracts to add to database that existed prior to stakeBTS v2.0
 BitShares Management Group Co. Ltd.
 """
 
-STAKES = """
-    tony-peacock	    1623177720000	25000	12	2
-    xiaoming	        1623198120000	25000	3	2
-    ahnamus07	        1623211800000	25000	3	2
-    karlis123	        1623278940000	50000	12	2
-    vildan16	        1623299280000	25000	3	2
-    valid-account-name	1623312060000	50000	3	2
-    cyber-cupcake	    1623323160000	100000	3	2
-    rbj453	            1623326160000	50000	6	2
-    jwk19txfr	        1623469980000	100000	3	2
-    czlsn338366	        1623549720000	25000	12	2
-    reedo-bob61	        1623626640000	50000	12	2
-    iamredbar1	        1623754560000	25000	3	2
-    make-million	    1623964560000	500000	3	2
-    gatc-company	    1624152240000	25000	6	2
-    s-walkacc	        1625442720000	50000	3	1
-    silrak1	            1625465580000	50000	3	1
-    nyob-one	        1625515920000	200000	12	1
-    stufletcher62372	1625518140000	100000	3	1
-    alshqqaa260	        1625527680000	50000	3	1
-    cenii1996	        1625601120000	50000	3	1
-    sam-btsacc	        1625645760000	200000	3	1
-    saya-gibang	        1626021480000	25000	12	1
-    myname555	        1626575820000	200000	3	1
-    bts-stakeacc	    1627543680000	200000	3	0
-    sune-3355	        1627955400000	50000	6	0
-"""
+MANUAL_PAYOUT_CODES = {
+    "tony-peacock": [2,],
+    "xiaoming": [2,],
+    "ahnamus07": [2,],
+    "karlis123": [2,],
+    "vildan16": [2,],
+    "valid-account-name": [2,],
+    "cyber-cupcake": [2,],
+    "rbj453": [2,],
+    "jwk19txfr": [2,],
+    "czlsn338366": [2,],
+    "reedo-bob61": [2,],
+    "iamredbar1": [2,],
+    "make-million": [2,],
+    "gatc-company": [2,],
+    "s-walkacc": [1,],
+    "silrak1": [1,],
+    "nyob-one": [1,],
+    "stufletcher62372": [1,],
+    "alshqqaa260": [1,],
+    "cenii1996": [1,],
+    "sam-btsacc": [1,],
+    "saya-gibang": [1,],
+    "myname555": [1,],
+    "bts-stakeacc": [0,],
+    "sune-3355": [0,],
+}
 
-CONTRACT_BLOCKS = [
+LEGACY_AGREEMENTS = [
     59106023,
     59112800,
     59117361,
