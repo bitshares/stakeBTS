@@ -2,7 +2,7 @@
 
 <img src="https://imgur.com/GUhGcov.png" alt=""></img>
 
-<img src="https://imgur.com/DNyyhfr.png" alt=""></img>
+<img src="https://imgur.com/GJZrLxY.gif" alt=""></img>
 
 # StakeBTS 
 
