@@ -40,14 +40,14 @@ def main():
         queries = []
         # block number table
         query = """
-        CREATE TABLE block_num (block_num INTEGER);
+            CREATE TABLE block_num (block_num INTEGER)
         """
+        print(query)
         dml = {"query": query, "values": ()}
         queries.append(dml)
         # stakes table
-
         query = """
-        CREATE TABLE stakes (
+            CREATE TABLE stakes (
             nominator TEXT,
             digital_asset TEXT,
             amount INTEGER,
@@ -65,26 +65,28 @@ def main():
             UNIQUE (
             type, number, block_start, trx_idx, ops_idx
             ) ON CONFLICT IGNORE
-        );
-        """         
+            )
+        """
         # SECURITY: UNIQUE() prevents duplicate database entries
         # {block_start, trx_idx, ops_idx} is a unique blockchain operation
         # {type, number} is a unique database row per stake
+        print(query)
         dml = {"query": query, "values": ()}
         queries.append(dml)
         # receipts table
         query = """
-        CREATE TABLE receipts (
+            CREATE TABLE receipts (
             nonce INTEGER,
             now INTEGER,
             msg TEXT
-        );
+            )
         """
+        print(query)
         dml = {"query": query, "values": ()}
         queries.append(dml)
         # starting block number table
         query = """
-        INSERT INTO block_num (block_num) VALUES (?);
+            INSERT INTO block_num (block_num) VALUES (?)
         """
         values = (61000000,)
         dml = {"query": query, "values": values}
@@ -92,17 +94,17 @@ def main():
         sql_db(queries)
         # display the tables' info
         query = """
-        PRAGMA table_info (stakes)
+            PRAGMA table_info (stakes)
         """
         for col in sql_db(query):
             print(col)
         query = """
-        PRAGMA table_info (receipts)
+            PRAGMA table_info (receipts)
         """
         for col in sql_db(query):
             print(col)
         query = """
-        PRAGMA table_info (block_num)
+            PRAGMA table_info (block_num)
         """
         for col in sql_db(query):
             print(col)

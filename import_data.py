@@ -9,7 +9,7 @@ from bitshares.block import Block
 
 # STAKEBTS MODULES
 from dev_auth import KEYS
-from preexisting_contracts import MANUAL_PAYOUT_CODES, LEGACY_AGREEMENTS
+from preexisting_contracts import LEGACY_AGREEMENTS, MANUAL_PAYOUT_CODES
 from stake_bitshares import check_block
 from utilities import sql_db
 
@@ -18,7 +18,6 @@ JUNE30 = 1625011200000
 JULY31 = 1627689600000
 AUG31 = 1630411200000
 BLOCK0 = 1445838432000  # assuming perfect blocktime, calculated Aug 7, 2021
-
 
 
 def convert_munix_to_block(munix):
@@ -56,43 +55,43 @@ def mark_prepaid_stakes():
             # handle two last minute payments on august 31st for sune-3355 and bts-stakeacc
             if code == 0:
                 block = convert_munix_to_block(AUG31)
-                query = (
-                    "UPDATE stakes "
-                    + "SET status='paid', block_processed=?, processed=? "
-                    + "WHERE nominator=? AND type='reward' AND status='pending' "
-                    + "AND number='1'"
-                )
+                query = """
+                    UPDATE stakes
+                    SET status='paid', block_processed=?, processed=?
+                    WHERE nominator=? AND type='reward' AND status='pending'
+                    AND number='1'
+                """
                 values = (block, AUG31, nominator)
                 sql_db(query, values)
             # handle cases where only JULY31 payment has been sent already
             if code == 1:
                 block = convert_munix_to_block(JULY31)
-                query = (
-                    "UPDATE stakes "
-                    + "SET status='paid', block_processed=?, processed=? "
-                    + "WHERE nominator=? AND type='reward' AND status='pending' "
-                    + "AND number='1'"
-                )
+                query = """
+                    UPDATE stakes
+                    SET status='paid', block_processed=?, processed=?
+                    WHERE nominator=? AND type='reward' AND status='pending'
+                    AND number='1'
+                """
                 values = (block, JULY31, nominator)
                 sql_db(query, values)
             # handle cases where JUNE30 and JULY31 payments have been sent
             if code == 2:
                 block = convert_munix_to_block(JUNE30)
-                query = (
-                    "UPDATE stakes "
-                    + "SET status='paid', block_processed=?, processed=? "
-                    + "WHERE nominator=? AND type='reward' AND status='pending' "
-                    + "AND number='1'"
-                )
+                query = """
+                    UPDATE stakes
+                    SET status='paid', block_processed=?, processed=?
+                    WHERE nominator=? AND type='reward' AND status='pending'
+                    AND number='1'
+                """
                 values = (block, JUNE30, nominator)
                 sql_db(query, values)
                 block = convert_munix_to_block(JULY31)
-                query = (
-                    "UPDATE stakes "
-                    + "SET status='paid', block_processed=?, processed=? "
-                    + "WHERE nominator=? AND type='reward' AND status='pending' "
-                    + "AND number='2'"
-                )
+                query = """
+                    UPDATE stakes
+                    SET status='paid', block_processed=?, processed=?
+                    WHERE nominator=? AND type='reward' AND status='pending'
+                    AND number='2'
+                """
                 values = (block, JULY31, nominator)
                 sql_db(query, values)
 
@@ -130,6 +129,7 @@ def initialize_database_with_existing_agreements():
         # display results
         query = "SELECT * from stakes"
         print(sql_db(query))
+
 
 if __name__ == "__main__":
 

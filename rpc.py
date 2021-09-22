@@ -35,7 +35,8 @@ def pybitshares_reconnect():
     pause = 0
     while True:
         try:
-            bitshares = BitShares(node=NODE, nobroadcast=False)
+            bitshares = BitShares(node=NODE, blocking="irreversible", nobroadcast=False)
+            bitshares.set_blocking(True)
             set_shared_bitshares_instance(bitshares)
             memo = Memo(blockchain_instance=bitshares)
             return bitshares, memo
@@ -55,6 +56,16 @@ def get_block_num_current():
     """
     bitshares, _ = pybitshares_reconnect()
     return bitshares.rpc.get_dynamic_global_properties()["last_irreversible_block_num"]
+
+
+def get_dynamic_globals():
+    """
+    not actually used by this script,
+    but allows us to associate a recent block num to unix time for dev
+    :return dict():
+    """
+    bitshares, _ = pybitshares_reconnect()
+    print(bitshares.rpc.get_dynamic_global_properties())
 
 
 # RPC POST WITHDRAWALS
@@ -85,21 +96,23 @@ def post_withdrawal_bittrex(amount, nominator, api, keys):
                 "cryptoAddress": str(nominator),
             }
             # returns response.json() as dict or list python object
-            ret = bittrex_api.post_withdrawal(**params)
-            msg += json_dumps(ret)
+            ret = json_dumps(bittrex_api.post_withdrawal(**params))
             if isinstance(ret, dict):
                 if "code" in ret:
                     print(it("red", ret), line_info())
                     raise TypeError("Bittrex failed with response code")
         except Exception as error:
-            msg += line_info() + " " + exception_handler(error)
-            msg += it(
-                "red", f"bittrex failed to send {amount} to nominator {nominator}",
+            msg = (
+                line_info()
+                + " "
+                + exception_handler(error)
+                + f"bittrex failed to send {amount} to nominator {nominator}",
             )
-            print(msg)
+            print(it("red", msg))
+            ret = {"error": msg}
     else:
-        msg += " skipping payment... developer mode"
-    return msg
+        print("skipping payment... developer mode")
+    return ret
 
 
 def post_withdrawal_pybitshares(amount, nominator, memo, keys):
@@ -120,7 +133,7 @@ def post_withdrawal_pybitshares(amount, nominator, memo, keys):
                 raise ValueError(f"Invalid Withdrawal Amount {amount}")
             bitshares, _ = pybitshares_reconnect()
             bitshares.wallet.unlock(keys["password"])
-            msg += json_dumps(
+            ret = json_dumps(
                 bitshares.transfer(
                     nominator, amount, "BTS", memo, account=keys["custodian"]
                 )
@@ -128,16 +141,18 @@ def post_withdrawal_pybitshares(amount, nominator, memo, keys):
             bitshares.wallet.lock()
             bitshares.clear_cache()
         except Exception as error:
-            msg += line_info() + " " + exception_handler(error)
-            msg += it(
-                "red",
-                f"pybitshares failed to send {amount}"
+            msg = (
+                line_info()
+                + " "
+                + exception_handler(error)
+                + f"pybitshares failed to send {amount}"
                 + f"to nominator {nominator} with memo {memo}, ",
             )
-            print(msg)
+            print(it("red", msg))
+            ret = {"error": msg}
     else:
-        msg += " skipping payment... developer mode"
-    return msg
+        print("skipping payment... developer mode")
+    return ret
 
 
 # RPC TRANSACTION FEE
@@ -211,7 +226,7 @@ def get_balance_bittrex(keys):
             except Exception as error:
                 print(exception_handler(error), line_info())
                 balances[api] = 0
-    print("bittrex balances:", balances)
+    #print("bittrex balances:", balances)
     return balances
 
 
@@ -234,7 +249,7 @@ def get_balance_pybitshares():
     except Exception as error:
         print(exception_handler(error), line_info())
         balance = 0
-    print("pybitshares balance:", balance)
+    #print("pybitshares balance:", balance)
     return balance
 
 

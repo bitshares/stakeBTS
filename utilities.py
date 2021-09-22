@@ -89,14 +89,14 @@ def line_info():
     :return str(): red formatted function and line number
     """
     info = inspect.getframeinfo(inspect.stack()[1][0])
-    return it("red", "function " + str(info.function) + " line " + str(info.lineno))
+    return "function " + str(info.function) + " line " + str(info.lineno)
 
 
 def exception_handler(error):
     """
     :return str(): red formatted error name and args
     """
-    return it("red", f"{type(error).__name__} {error.args}")
+    return f"{type(error).__name__} {error.args}"
 
 
 def sql_db(query, values=()):
@@ -109,22 +109,27 @@ def sql_db(query, values=()):
     :return cur.fetchall(): from single SELECT, or last SELECT query made
     """
     queries = []
+    # handle both single query and multiple queries
     if isinstance(query, str):
         queries.append({"query": query, "values": values})
     else:
         queries = query
-
+    # strip double spaces and new lines in each query
+    for idx, dml in enumerate(queries):
+        queries[idx]["query"] = " ".join(dml["query"].replace("\n", " ").split())
+    # print sql except when...
     for dml in queries:
-        # do not print sql when updating block number, selecting, or status=processing
         if (
             "UPDATE block_num" not in dml["query"]
             and "SELECT" not in dml["query"]
             and "SET status='processing'" not in dml["query"]
             and "WHERE type='penalty' AND due<?" not in dml["query"]
+            and "balances" not in str(dml["values"])
+            and "initialize" not in str(dml["values"])
         ):
             print(it("yellow", f"'query': {dml['query']}"))
             print(it("green", f"'values': {dml['values']}\n"))
-
+    # attempt to update database until satisfied
     pause = 0
     curfetchall = None
     while True:
@@ -139,7 +144,8 @@ def sql_db(query, values=()):
             break
         # OperationalError: database is locked
         except Exception as error:
-            print(exception_handler(error), line_info())
+            print(exception_handler(error), line_info(), query, values, "trying again")
+            # exponentially slower
             time.sleep(0.1 * 2 ** pause)
             if pause < 13:  # oddly works out to about 13 minutes
                 pause += 1

@@ -23,6 +23,9 @@ from urllib.parse import urlencode
 # THIRD PARTY MODULES
 import requests
 
+# STAKE BITSHARES MODULES
+from utilities import munix_nonce
+
 API_URL = "https://api.bittrex.com/v3/"
 API_KEY = ""  # only for unit testing
 API_SECRET = ""  # only for unit testing
@@ -64,7 +67,7 @@ class Bittrex:
                 endpoint = endpoint + "?" + urlencode(kwargs)
             else:
                 request_data["data"] = payload = json.dumps(kwargs)
-        mill_timestamp = str(int(time.time() * 1000))
+        mill_timestamp = str(munix_nonce())
         content_hash = hashlib.sha512(payload.encode()).hexdigest()
         uri = API_URL + endpoint
         _pre_sign = mill_timestamp + uri + method.upper() + content_hash
@@ -83,7 +86,7 @@ class Bittrex:
             print(
                 {
                     "uri": uri,
-                    "headers": session.headers,
+                    "key": self.api_key,
                     "method": method,
                     "data": request_data,
                 }

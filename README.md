@@ -2,7 +2,7 @@
 
 `APP VERSION`
 
-**v2.3**
+**v2.4**
 
 `PYTHON VERSION`
 
@@ -10,9 +10,9 @@
 
 `PYTHON REQUIREMENTS`
 
-- bitshares
-- uptick
-- requests
+ - bitshares
+ - uptick
+ - requests
 
 `LICENSE`
 
@@ -59,11 +59,11 @@ input "y" then press Enter
 
 It will:
 
-- delete any existing db
-- create database folder
-- Create stake_bitshares.db
-- set up the tables
-- check the schema and that the stake table is empty
+ - delete any existing db
+ - create database folder
+ - Create stake_bitshares.db
+ - set up the tables
+ - check the schema and that the stake table is empty
 
 **Next we'll replay the blocks containing legacy agreements**
 
@@ -96,9 +96,9 @@ python3.8 import_data.py
 
 It will:
 
-- Replay blocks where legacy contracts were created and set them up in the database
+ - Replay blocks where legacy contracts were created and set them up in the database
 
-- mark all manual payments to date paid on June 30, July 31, and Aug 31
+ - mark all manual payments to date paid on June 30, July 31, and Aug 31
 
 At this point you should view the contents of the stakes table:
 
@@ -178,40 +178,59 @@ You will be prompted for all credentials, pybitshares and bittrex
 `
 CHANGELIST v2.0
 `
-- previously payouts were occurring at end of month
-- all future payouts will occur in 30 day intervals from beginning of agreement
-- if you were paid early previously this may mean up to 59 days until next payout
-- all payout amounts will be rounded down to nearest whole bitshare
-- user will receive receipt as memo w/ 1 BTS upon creating a new agreement
-- all payouts will come from bitsharesmanagement.group
-- in the event of payout failure, 1 BTS will be sent with additional support info
-- nominator sends an invalid amount or invalid memo he will be refuned less 50 BTS penalty
-- manager can use bot to transfer funds to and from bittrex to custodianage account
-- manager can use bot to personally loan funds to the custodianage account
-- new database format, all payouts are added to database at start of agreement
-- new database format, all outbound payment details are kept as receipts
-- in the event custodianage account is low on funds, bot will pull from bittrex accounts
-- all current payouts due are grouped into a thread
-- each individual payout is also a thread
-- apscheduler has been replaced by a custom database items due listener
-- approved admin must be lifetime members of BitShares to run the bot
+
+ - previously payouts were occurring at end of month
+ - all future payouts will occur in 30 day intervals from beginning of agreement
+ - if you were paid early previously this may mean up to 59 days until next payout
+ - all payout amounts will be rounded down to nearest whole bitshare
+ - user will receive receipt as memo w/ 1 BTS upon creating a new agreement
+ - all payouts will come from bitsharesmanagement.group
+ - in the event of payout failure, 1 BTS will be sent with additional support info
+ - nominator sends an invalid amount or invalid memo he will be refuned less 50 BTS penalty
+ - manager can use bot to transfer funds to and from bittrex to custodianage account
+ - manager can use bot to personally loan funds to the custodianage account
+ - new database format, all payouts are added to database at start of agreement
+ - new database format, all outbound payment details are kept as receipts
+ - in the event custodianage account is low on funds, bot will pull from bittrex accounts
+ - all current payouts due are grouped into a thread
+ - each individual payout is also a thread
+ - apscheduler has been replaced by a custom database items due listener
+ - approved admin must be lifetime members of BitShares to run the bot
 
 `
 CHANGELIST v2.2
 `
-- post withdrawal and get balances now account for fees
-- new trx_idx and ops_idx allow for multiple stakes from one user in same block
-- new initiation procedure gathers accurate block number for legacy agreements
+
+ - post withdrawal and get balances now account for fees
+ - new trx_idx and ops_idx allow for multiple stakes from one user in same block
+ - new initiation procedure gathers accurate block number for legacy agreements
+
+`
+CHANGELIST v2.3
+`
+
+ - nominator reward agreements are due from original blocktime, not database time
+
+`
+CHANGELIST v2.4
+`
+
+ - receipt messages are json
+ - improved ux, additional color and formatting
+ - added metadata on upcoming and past liabililities
+ - outgoing transfers updated with callback block number
+
 
 `NOTES`
-- Requires creation of uptick wallet w/ `CUSTODIAN`'s `Acitve` and `Memo` keys
-- On BOT start you will be asked to enter your uptick WALLET password
-- Bittrex api is used for outbound payments.
-- You must also have Bittrex API key/secret.
-- This will be repeated for all 3 Bittrex corporate accounts.
-- All timestamps are integers in milleseconds
-- All amounts of funds stored in DB and sent are integers of BTS
-- Nothing is ever removed from the database
+
+ - Requires creation of uptick wallet w/ `CUSTODIAN`'s `Acitve` and `Memo` keys
+ - On BOT start you will be asked to enter your uptick WALLET password
+ - Bittrex api is used for outbound payments.
+ - You must also have Bittrex API key/secret.
+ - This will be repeated for all 3 Bittrex corporate accounts.
+ - All timestamps are integers in milleseconds
+ - All amounts of funds stored in DB and sent are integers of BTS
+ - Nothing is ever removed from the database
 
 `NOMINATOR JSON FORMAT`
 
@@ -238,11 +257,11 @@ the bot will also accept non json formatted nominator memos eg; `six_months` wou
 
 it will also attempt to be kind to some silly errors, eg:
 
-- `'   six_months `
-- `six_months  '`
-- `"six_months"`
-- `'six_months'`
-- `"si x_ mon  ths"`
+ - `'   six_months `
+ - `six_months  '`
+ - `"six_months"`
+ - `'six_months'`
+ - `"si x_ mon  ths"`
 
 should all parse, but other errors will be charged a fee...
 
@@ -250,21 +269,24 @@ should all parse, but other errors will be charged a fee...
 
 The bot charges a fee of 50 BTS and returns your funds if:
 
-- sending invalid stake amount
-- sending invalid memo
-- sending admin request without being in MANAGER list
-- sending admin loan_to_bmg without lifetime member (LTM) status on your account
-- bot ignores bittrex to bmg and vice versa transfer requests if not LTM
+ - sending invalid stake amount
+ - sending invalid memo
+ - sending admin request without being in MANAGER list
+ - sending admin loan_to_bmg without lifetime member (LTM) status on your account
+ - bot ignores bittrex to bmg and vice versa transfer requests if not LTM
 
 `DATABASE`
+
 ```
 CREATE TABLE block (
     block INTEGER           # bitshares block number last checked by bot
 );
 ```
-- NOTE all payments *potentially* due
-- are entered into "stakes" TABLE at start of agreement
-- as events unfold, their "status", "block", and "processed" time changes
+
+ - NOTE all payments *potentially* due
+ - are entered into "stakes" TABLE at start of agreement
+ - as events unfold, their "status", "block", and "processed" time changes
+
 ```
     CREATE TABLE stakes (
         nominator TEXT             # bitshares user name for nominator
@@ -285,7 +307,9 @@ CREATE TABLE block (
             ) ON CONFLICT IGNORE
     );
 ```
-- receipts will hold transaction details for all incoming and outgoing tx's
+
+ - receipts will hold transaction details for all incoming and outgoing tx's
+
 ```
     CREATE TABLE receipts (
         nonce INTEGER           # munix start time of agreement (same as 'stakes/start')
@@ -293,7 +317,9 @@ CREATE TABLE block (
         msg TEXT                # receipt details for audit trail
     );
 ```
-- add a dummy block number into the block_num database
+
+ - add a dummy block number into the block_num database
+
 ```
 INSERT INTO block_num (block_num) VALUES (59120000); # the initial starting block
 ```
@@ -301,10 +327,13 @@ INSERT INTO block_num (block_num) VALUES (59120000); # the initial starting bloc
 `preexisting_agreements.py and import_data.py`
 
 preexisting_agreements.py houses a single global constant of block text in format:
+
 ```
 username milliseconds_unix amount agreement_length months_paid
 ```
+
 can be tab or space delimited, eg:
+
 ```
     STAKES = """
         user1233 1623177720000 25000 12 2
@@ -399,95 +428,104 @@ it just sees "pending" vs "paid/aborted" line items
 
 `RESET DATABASE`
 
-- `python3.8 db_setup.py`
+ - `python3.8 db_setup.py`
 
 `UNIT TESTING CHECKLIST`
 
 ### 1) BALANCES AND WITHDRAWALS
-- in a seperate script import withdrawal and balances definitions:
-- unit test `post_withdrawal_bittrex()` and `post_withdrawal_pybitshares()`
-- unit test `get_balance_bittrex()` and `get_balance_pybitshares()`
+
+ - in a seperate script import withdrawal and balances definitions:
+ - unit test `post_withdrawal_bittrex()` and `post_withdrawal_pybitshares()`
+ - unit test `get_balance_bittrex()` and `get_balance_pybitshares()`
 
 ### 2) BLOCK OPERATIONS LISTENER
-- reset database
-- in config.py set `DEV = True`
-- send 0.1 BTS to custodian, ensure script hears it arrive to the `CUSTODIAN` account.
-- check state of `receipts` and `stakes` database tables
+
+ - reset database
+ - in config.py set `DEV = True`
+ - send 0.1 BTS to custodian, ensure script hears it arrive to the `CUSTODIAN` account.
+ - check state of `receipts` and `stakes` database tables
 
 ### 3) DATABASE LISTENER
-- in config.py set `DEV = True`
-- reset database
-- load old agreements:
-- - `python3.8 import_data.py`
-- print database contents:
-- - `sqlite3 stake_bitshares.db`
-- - `SELECT * FROM stakes;`
-- run
-- - `python3 stake_bitshares.py`
-- in a second terminal via sql, change the due date on a single payment to 0,
-- see that it gets paid
-- - `sqlite3 stake_bitshares.db`
-- - `UPDATE stakes SET due=0 WHERE nominator='user1234' AND number=6;`
-- check state of `receipts` and `stakes` database tables
+
+ - in config.py set `DEV = True`
+ - reset database
+ - load old agreements:
+ - - `python3.8 import_data.py`
+ - print database contents:
+ - - `sqlite3 stake_bitshares.db`
+ - - `SELECT * FROM stakes;`
+ - run
+ - - `python3 stake_bitshares.py`
+ - in a second terminal via sql, change the due date on a single payment to 0,
+ - see that it gets paid
+ - - `sqlite3 stake_bitshares.db`
+ - - `UPDATE stakes SET due=0 WHERE nominator='user1234' AND number=6;`
+ - check state of `receipts` and `stakes` database tables
 
 ### 4) REPLAY BLOCKS
-- reset database
-- in config.py set `DEV = True`
-- in config.py test True, False, int() of `REPLAY`
-- ensure script starts at correct block number
-- script should not create duplicates in stakes database when replaying
-- check state of `receipts` and `stakes` database tables
+
+ - reset database
+ - in config.py set `DEV = True`
+ - in config.py test True, False, int() of `REPLAY`
+ - ensure script starts at correct block number
+ - script should not create duplicates in stakes database when replaying
+ - check state of `receipts` and `stakes` database tables
 
 ### 5) NOMINATOR MEMOS
-- reset database
-- with config.py set `DEV = False` and `100` added to the list of `INVEST_AMOUNTS`
-- send an invalid amount `99`
-- send an invalid memo `fail_memo`
-- send a valid amount `100` and valid memo to start a new stake
-- send memo to `stop` a stake
+
+ - reset database
+ - with config.py set `DEV = False` and `100` added to the list of `INVEST_AMOUNTS`
+ - send an invalid amount `99`
+ - send an invalid memo `fail_memo`
+ - send a valid amount `100` and valid memo to start a new stake
+ - send memo to `stop` a stake
 
 ### 6) ADMIN MEMOS
-- using a `MANAGER` account test admin memos (with and without `LTM`)
+
+ - using a `MANAGER` account test admin memos (with and without `LTM`)
  - `bmg_to_bittrex`
  - `bittrex_to_bmg`
  - `loan_to_bmg`
-- check state of `receipts` and `stakes` database tables
+ - check state of `receipts` and `stakes` database tables
 
 ### 7) BITTREX COVER
-- reset database
-- send 1000 BTS to Bittrex
-- with config.py set `DEV = False` and `100` added to the list of `INVEST_AMOUNTS`
-- insert line item in `stakes` table with amount ~500 BTS more than balance of CUSTODIAN:
-- - `INSERT INTO`
-- - `stakes`
-- - `(nominator, digital_asset, amount, type, start, due, processed, status, block_start, block_processed, number)`
-- - `VALUES`
-- - `('user1234', 'BTS', BALANCE_CUSTODIAN, 'reward', 0, 0, 0, 'pending', 0, 0, 1)`
-- empty the custodian account
-- send memo to `stop` a stake
-- bot should move funds from bittrex to pybitshares wallet, then to nominator to cover
-- ideally this should be tested with various amounts in all 3 Bittrex wallets
+
+ - reset database
+ - send 1000 BTS to Bittrex
+ - with config.py set `DEV = False` and `100` added to the list of `INVEST_AMOUNTS`
+ - insert line item in `stakes` table with amount ~500 BTS more than balance of CUSTODIAN:
+ - - `INSERT INTO`
+ - - `stakes`
+ - - `(nominator, digital_asset, amount, type, start, due, processed, status, block_start, block_processed, number)`
+ - - `VALUES`
+ - - `('user1234', 'BTS', BALANCE_CUSTODIAN, 'reward', 0, 0, 0, 'pending', 0, 0, 1)`
+ - empty the custodian account
+ - send memo to `stop` a stake
+ - bot should move funds from bittrex to pybitshares wallet, then to nominator to cover
+ - ideally this should be tested with various amounts in all 3 Bittrex wallets
 
 `FEATURES`
 
-- automatically move funds from bittrex to hot wallet to cover payments due
-- does not allow non-ltm users to administrate
-- allows replay from current block, last block in database, or user specified block.
-- prevents double entries during replay
+ - automatically move funds from bittrex to hot wallet to cover payments due
+ - does not allow non-ltm users to administrate
+ - allows replay from current block, last block in database, or user specified block.
+ - prevents double entries during replay
 
 `WARNING`
 
 This software is provided without warranty.
+
 Automating withdrawals is inherently exploit prone.
+
 Conduct an security review commensurate with your investment.
 
 `SPONSOR`
 
 This software is sponsored and managed by BitShares Management Group Limited
 
-- https://bitsharesmanagement.group
-- https://bitsharestalk.org
-- https://bitshares.org
+ - https://bitsharesmanagement.group
+ - https://bitsharestalk.org
+ - https://bitshares.org
 
 `TRADEMARK`
 
@@ -499,11 +537,11 @@ service marks, and/or registered trademarks of Move Institute, Slovenia.
 
 v1.0 initial prototype
 
-- iamredbar: iamredbar@protonmail.com https://github.com/iamredbar
+ - iamredbar: iamredbar@protonmail.com https://github.com/iamredbar
 
 v2.0 refactor, refinement, added features
 
-- litepresence: finitestate@tutamail.com https://github.com/litepresence
+ - litepresence: finitestate@tutamail.com https://github.com/litepresence
 
 `COMMENTS, COMPLAINTS, other ISSUES`
 
