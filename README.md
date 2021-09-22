@@ -1,4 +1,10 @@
-# StakeBTS Python Bot
+<img src="https://imgur.com/afgz9uB.png" alt=""></img>
+
+<img src="https://imgur.com/GUhGcov.png" alt=""></img>
+
+<img src="https://imgur.com/DNyyhfr.png" alt=""></img>
+
+# StakeBTS 
 
 `APP VERSION`
 
