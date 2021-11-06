@@ -45,3 +45,4 @@ DEV_AUTH = False  # Use keys found in dev auth file? True=YES
 ADMIN_REPLAY = False  # Perform admin transfers again during replay? True=YES
 MAKE_PAYMENTS = True  # When False disables listener_sql and all withdrawals
 CONFIRM_AGREEMENTS = True  # Send 1 BTS + memo for new transactions
+SKIP_BLOCKS = [] # use this list to skip individual block numbers during replay

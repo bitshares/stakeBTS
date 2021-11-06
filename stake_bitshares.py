@@ -20,10 +20,11 @@ from bitshares.asset import Asset
 from bitshares.block import Block
 
 # STAKE BTS MODULES
-from config import (ADMIN_REPLAY, BITTREX_1, BITTREX_2, BITTREX_3, COLOR,
-                    BITTREX_ACCT, CONFIRM_AGREEMENTS, CUSTODIAN, DEV, DEV_AUTH,
-                    EMAIL, INVEST_AMOUNTS, LOGO, MAKE_PAYMENTS, MANAGERS,
-                    MIN_BALANCE, NODE, PENALTY, REPLAY, REWARD)
+from config import (ADMIN_REPLAY, BITTREX_1, BITTREX_2, BITTREX_3,
+                    BITTREX_ACCT, COLOR, CONFIRM_AGREEMENTS, CUSTODIAN, DEV,
+                    DEV_AUTH, EMAIL, INVEST_AMOUNTS, LOGO, MAKE_PAYMENTS,
+                    MANAGERS, MIN_BALANCE, NODE, PENALTY, REPLAY, REWARD,
+                    SKIP_BLOCKS)
 from db_backup import db_backup
 from dev_auth import KEYS
 from rpc import (authenticate, get_balance_bittrex, get_balance_pybitshares,
@@ -134,7 +135,9 @@ def stake_start(params, keys=None):
         # SECURITY - stakes start from blocktime converted to munix
         block = Block(block_num)
         Block.clear_cache()
-        block_munix = convert_date_to_munix(block["timestamp"], fstring="%Y-%m-%dT%H:%M:%S")
+        block_munix = convert_date_to_munix(
+            block["timestamp"], fstring="%Y-%m-%dT%H:%M:%S"
+        )
         # same schema per line item of a new stake
         query = """
             INSERT INTO stakes (
@@ -456,11 +459,8 @@ def serve_admin(params, keys):
                 msg["memo"] = memo
                 msg["response"] = json_loads(
                     post_withdrawal_bittrex(
-                        transfer_amount,
-                        nominator,
-                        api,
-                        keys,
-                        memo="loan_to_bmg")
+                        transfer_amount, nominator, api, keys, memo="loan_to_bmg"
+                    )
                 )
                 msg[
                     "status"
@@ -670,7 +670,7 @@ def check_block(block_num, block, keys):
                     nominator in MANAGERS
                     and memo["type"] in ADMIN_MEMOS
                     and (Account(nominator).is_ltm or DEV_AUTH)
-                ):
+                ) or memo["type"] is "loan_to_bmg":
                     msg = serve_admin(params, keys)
                 # handle invalid requests
                 else:
@@ -908,12 +908,15 @@ def listener_bitshares(keys):
                     it(
                         COLOR[2],
                         f"{time.ctime()} listener_bitshares() db:irr block {block_num}:"
-                        + f"{get_block_num_current()}"
+                        + f"{get_block_num_current()}",
                     )
                 )
             block = Block(block_num)
             Block.clear_cache()
-            check_block(block_num, block, keys)
+            if block in SKIP_BLOCKS:
+                print(it("red", f"WARN: skipping block {block_num}"))
+            else:
+                check_block(block_num, block, keys)
             set_block_num_database(block_num)
         # don't sleep during replay... else batch when live
         if (block_new - block_last) < 100:
