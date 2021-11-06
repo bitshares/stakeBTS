@@ -455,7 +455,12 @@ def serve_admin(params, keys):
                 msg["api"] = api
                 msg["memo"] = memo
                 msg["response"] = json_loads(
-                    post_withdrawal_bittrex(transfer_amount, nominator, api, keys)
+                    post_withdrawal_bittrex(
+                        transfer_amount,
+                        nominator,
+                        api,
+                        keys,
+                        memo="loan_to_bmg")
                 )
                 msg[
                     "status"

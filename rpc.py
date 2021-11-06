@@ -69,7 +69,7 @@ def get_dynamic_globals():
 
 
 # RPC POST WITHDRAWALS
-def post_withdrawal_bittrex(amount, nominator, api, keys):
+def post_withdrawal_bittrex(amount, nominator, api, keys, memo=""):
     """
     send funds using the bittrex api
     bittrex sends the amount requested less the tx fee, so tx fee is added
@@ -95,6 +95,8 @@ def post_withdrawal_bittrex(amount, nominator, api, keys):
                 "quantity": str(float(amount)),
                 "cryptoAddress": str(nominator),
             }
+            if memo:
+                params.update({"cryptoAddressTag": str(memo)})
             # returns response.json() as dict or list python object
             ret = json_dumps(bittrex_api.post_withdrawal(**params))
             if isinstance(ret, dict):
