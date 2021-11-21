@@ -828,7 +828,9 @@ def payment_cover(params, keys):
                     # presume 10 for safe measure
                     qty = min(deficit, bittrex_available - 10)
                     msg["response"] = json_loads(
-                        post_withdrawal_bittrex(qty, CUSTODIAN, api, keys)
+                        post_withdrawal_bittrex(
+                          qty, CUSTODIAN, api, keys, memo="loan_to_bmg"
+                        )
                     )
                     update_receipt_database(nonce, json_dumps(msg))
                     deficit -= qty
